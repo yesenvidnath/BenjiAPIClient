@@ -9,13 +9,15 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('expenses_list', function (Blueprint $table) {
-            $table->id();
+            $table->id('expenseslist_ID');
+            $table->foreignId('reason_ID')->constrained('reasons', 'reason_ID'); // Explicitly reference reason_ID
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.

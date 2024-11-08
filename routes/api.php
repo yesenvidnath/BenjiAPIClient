@@ -20,11 +20,20 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/register', [UserController::class, 'register']);
-Route::post('/login', [UserController::class, 'login']);
-Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
-Route::middleware('auth:sanctum')->put('/profile', [UserController::class, 'updateProfile']);
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [UserController::class, 'register']);
+    Route::post('/login', [UserController::class, 'login']);
+    Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/reset-password', [UserController::class, 'resetPassword']);
 
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::put('/profile/update', [UserController::class, 'updateProfile']);
+        Route::delete('/profile/delete', [UserController::class, 'deleteProfile']);
+        Route::get('/profile/get/{id}', [UserController::class, 'getProfile']);
+        Route::get('/profile/search', [UserController::class, 'searchProfiles']);
+        Route::post('/change-password', [UserController::class, 'changePassword']); // this is privet coz the user ID need to be verifyed
+    });
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/income-sources/add', [IncomeManagementController::class, 'addIncomeSource']);

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class User extends Authenticatable
 {
@@ -18,7 +19,7 @@ class User extends Authenticatable
     protected $keyType = 'int';
 
     protected $fillable = [
-        'type', 'DOB', 'phone_number', 'email', 'password', 'profile_image', 'bank_choice',
+        'first_name', 'last_name', 'address', 'type', 'DOB', 'phone_number', 'email', 'password', 'profile_image', 'bank_choice',
     ];
 
     protected $hidden = [

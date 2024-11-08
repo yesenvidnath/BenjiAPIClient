@@ -127,35 +127,4 @@ class UserController extends Controller
         return response()->json(['message' => 'Successfully logged out'], 200);
     }
 
-
-
-    // Add Income Source (called after user registers and logs in)
-    public function addIncomeSource(Request $request)
-    {
-        $request->validate([
-            'source_name' => 'required|string',
-            'amount' => 'required|numeric',
-            'frequency' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        // Use the helper method to get the authenticated user's ID
-        $userId = $this->getAuthenticatedUserId();
-
-        // Check if we successfully retrieved the user ID
-        if (!$userId) {
-            return response()->json(['error' => 'User not authenticated'], 401);
-        }
-
-        // Create a new Income Source for the authenticated user
-        $incomeSource = IncomeSource::create([
-            'user_ID' => $userId,
-            'source_name' => $request->source_name,
-            'amount' => $request->amount,
-            'frequency' => $request->frequency,
-            'description' => $request->description,
-        ]);
-
-        return response()->json(['message' => 'Income source added successfully', 'income_source' => $incomeSource], 201);
-    }
 }

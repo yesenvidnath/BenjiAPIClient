@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\IncomeManagementController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -21,5 +23,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/logout', [UserController::class, 'logout'])->middleware('auth:sanctum');
-Route::middleware('auth:sanctum')->post('/income-sources', [UserController::class, 'addIncomeSource']);
 Route::middleware('auth:sanctum')->put('/profile', [UserController::class, 'updateProfile']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/income-sources/add', [IncomeManagementController::class, 'addIncomeSource']);
+    Route::put('/income-sources/update/{id}', [IncomeManagementController::class, 'updateIncomeSource']);
+    Route::delete('/income-sources/delete/{id}', [IncomeManagementController::class, 'deleteIncomeSource']);
+    Route::get('/income-sources/search', [IncomeManagementController::class, 'searchIncomeSources']);
+    Route::get('/income-sources/get/{id}', [IncomeManagementController::class, 'getIncomeSource']);
+});

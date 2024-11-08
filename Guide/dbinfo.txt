@@ -1,0 +1,60 @@
+Stored procedures
+
+01.
+Procedure name : CreateUserAccount
+
+DELIMITER //
+
+CREATE PROCEDURE CreateUserAccount(
+    IN userType ENUM('Customer', 'Professional', 'Admin'),
+    IN userDOB DATE,
+    IN userPhone VARCHAR(20),
+    IN userEmail VARCHAR(100),
+    IN userPassword VARCHAR(255),
+    IN userProfileImage VARCHAR(255),
+    IN userBankChoice VARCHAR(255),
+    IN certificateID VARCHAR(255),
+    IN adminDescription TEXT,
+    IN incomeSourceName VARCHAR(255),
+    IN incomeAmount DECIMAL(10,2),
+    IN incomeFrequency ENUM('monthly', 'annual'),
+    IN incomeDescription TEXT
+)
+BEGIN
+    DECLARE newUserID BIGINT;
+
+    -- Insert into Users table and retrieve the last inserted ID
+    INSERT INTO users (type, DOB, phone_number, email, password, profile_image, bank_choice, created_at, updated_at)
+    VALUES (userType, userDOB, userPhone, userEmail, userPassword, userProfileImage, userBankChoice, NOW(), NOW());
+
+    SET newUserID = LAST_INSERT_ID();
+
+    -- Insert into appropriate table based on user type
+    IF userType = 'Professional' THEN
+        INSERT INTO professionals (user_ID, certificate_ID, status, created_at, updated_at)
+        VALUES (newUserID, certificateID, 'pending', NOW(), NOW());
+
+        -- Insert into income_sources if the user is a Professional
+        INSERT INTO income_sources (user_ID, source_name, amount, frequency, description, created_at, updated_at)
+        VALUES (newUserID, incomeSourceName, incomeAmount, incomeFrequency, incomeDescription, NOW(), NOW());
+
+    ELSEIF userType = 'Customer' THEN
+        INSERT INTO customers (user_ID, status, created_at, updated_at)
+        VALUES (newUserID, 'active', NOW(), NOW());
+
+        -- Insert into income_sources if the user is a Customer
+        INSERT INTO income_sources (user_ID, source_name, amount, frequency, description, created_at, updated_at)
+        VALUES (newUserID, incomeSourceName, incomeAmount, incomeFrequency, incomeDescription, NOW(), NOW());
+
+    ELSEIF userType = 'Admin' THEN
+        INSERT INTO admins (user_ID, description, created_at, updated_at)
+        VALUES (newUserID, adminDescription, NOW(), NOW());
+    END IF;
+
+END //
+
+DELIMITER ;
+
+
+02.
+Procedure name :

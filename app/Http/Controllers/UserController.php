@@ -3,29 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\IncomeSource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
     // User Registration
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'type' => 'required|in:Customer,Professional,Admin',
-            'DOB' => 'nullable|date',
-            'phone_number' => 'required|string|max:20',
-            'email' => 'required|email|unique:users',
+        $request->validate([
+            'type' => 'required|string',
+            'DOB' => 'required|date',
+            'phone_number' => 'required|string|unique:users',
+            'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'profile_image' => 'nullable|string',
-            'bank_choice' => 'nullable|string|max:100',
+            'bank_choice' => 'nullable|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
 
         $user = User::create([
             'type' => $request->type,
@@ -37,65 +34,60 @@ class UserController extends Controller
             'bank_choice' => $request->bank_choice,
         ]);
 
-        return response()->json(['message' => 'User registered successfully', 'user' => $user], 201);
+        // Automatically log in the user after registration
+        $token = $user->createToken('api_token')->plainTextToken;
+
+        return response()->json(['user' => $user, 'token' => $token], 201);
     }
 
     // User Login
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+        $request->validate([
+            'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['error' => 'Invalid login credentials'], 401);
-        }
+        // Generate a new token
+        $token = $user->createToken('api_token')->plainTextToken;
 
-        $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json(['message' => 'Login successful', 'access_token' => $token, 'user' => $user], 200);
+        return response()->json(['user' => $user, 'token' => $token], 200);
     }
 
-    // Get User Profile
-    public function profile()
+    // User Logout
+    public function logout(Request $request)
     {
-        $user = Auth::user();
-
-        return response()->json(['user' => $user], 200);
+        $request->user()->tokens()->delete();
+        return response()->json(['message' => 'Successfully logged out'], 200);
     }
 
-    // Update User Profile
-    public function updateProfile(Request $request)
+    // Add Income Source (called after user registers and logs in)
+    public function addIncomeSource(Request $request)
     {
-        $user = Auth::user();
-
-        $validator = Validator::make($request->all(), [
-            'phone_number' => 'nullable|string|max:20',
-            'DOB' => 'nullable|date',
-            'profile_image' => 'nullable|string',
-            'bank_choice' => 'nullable|string|max:100',
+        $request->validate([
+            'source_name' => 'required|string',
+            'amount' => 'required|numeric',
+            'frequency' => 'required|string',
+            'description' => 'nullable|string',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        // Create a new Income Source for the authenticated user
+        $incomeSource = IncomeSource::create([
+            'user_ID' => $request->user()->id, // Fetch user ID from the token
+            'source_name' => $request->source_name,
+            'amount' => $request->amount,
+            'frequency' => $request->frequency,
+            'description' => $request->description,
+        ]);
 
-        $user->update($request->only(['phone_number', 'DOB', 'profile_image', 'bank_choice']));
-
-        return response()->json(['message' => 'Profile updated successfully', 'user' => $user], 200);
-    }
-
-    // Logout
-    public function logout()
-    {
-        Auth::user()->tokens()->delete();
-
-        return response()->json(['message' => 'Logged out successfully'], 200);
+        return response()->json(['income_source' => $incomeSource], 201);
     }
 }

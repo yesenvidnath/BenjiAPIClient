@@ -8,10 +8,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
+
+    protected $primaryKey = 'user_ID';
 
     protected $fillable = [
         'type', 'DOB', 'phone_number', 'email', 'password', 'profile_image', 'bank_choice',
@@ -54,5 +57,22 @@ class User extends Authenticatable
     public function notifications()
     {
         return $this->hasMany(Notification::class, 'user_ID');
+    }
+
+    /**
+     * Override the save method to add debugging in case of issues.
+     */
+    public function save(array $options = [])
+    {
+        Log::info('Saving user:', ['id' => $this->id, 'email' => $this->email]);
+        parent::save($options);
+    }
+
+    /**
+     * Generate a new API token for the user.
+     */
+    public function generateApiToken()
+    {
+        return $this->createToken('api_token')->plainTextToken;
     }
 }

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\IncomeSource;
+use App\Models\Certificate;
 use Illuminate\Http\Request;
+use App\Models\Professional;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
@@ -27,6 +30,14 @@ class UserController extends Controller
         return $user ? $user->user_ID : null;
     }
 
+    // Retrieve the professional ID using authenticated user ID
+    private function getProfessionalId()
+    {
+        $userId = $this->getAuthenticatedUserId();
+        $professional = Professional::where('user_ID', $userId)->first();
+
+        return $professional ? $professional->professional_ID : null;
+    }
 
     // Auth and login registration
 
@@ -147,6 +158,13 @@ class UserController extends Controller
         return response()->json(['message' => 'Password changed successfully.'], 200);
     }
 
+
+
+
+
+
+
+
     public function updateProfile(Request $request)
     {
         // Validate the incoming request data
@@ -236,4 +254,140 @@ class UserController extends Controller
         return response()->json(['users' => $users], 200);
     }
 
+
+
+
+
+
+
+
+
+    // Add Certification
+    public function addCertification(Request $request)
+    {
+        $request->validate([
+            'certificate_name' => 'required|string',
+            'certificate_date' => 'required|date',
+            'certificate_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Only images allowed
+        ]);
+
+        $professionalId = $this->getProfessionalId();
+
+        if (!$professionalId) {
+            return response()->json(['message' => 'Professional ID not found'], 404);
+        }
+
+        // Store the certification image
+        $imagePath = $request->file('certificate_image')->store('public/certifications');
+        $imageUrl = Storage::url($imagePath);
+
+        // Save certification details in the database
+        $certificate = Certificate::create([
+            'professional_ID' => $professionalId,
+            'certificate_name' => $request->certificate_name,
+            'certificate_date' => $request->certificate_date,
+            'certificate_image' => $imageUrl,
+        ]);
+
+        return response()->json(['message' => 'Certification added successfully', 'certificate' => $certificate], 201);
+    }
+
+
+    // Update Certification
+    public function updateCertification(Request $request, $id)
+    {
+        $request->validate([
+            'certificate_name' => 'nullable|string',
+            'certificate_date' => 'nullable|date',
+            'certificate_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $certificate = Certificate::find($id);
+
+        if (!$certificate) {
+            return response()->json(['message' => 'Certification not found'], 404);
+        }
+
+        // Check ownership
+        if ($certificate->professional_ID !== $this->getProfessionalId()) {
+            return response()->json(['message' => 'Unauthorized action'], 403);
+        }
+
+        // Update the image if provided
+        if ($request->hasFile('certificate_image')) {
+            // Delete old image
+            if ($certificate->certificate_image) {
+                Storage::delete(str_replace('/storage', 'public', $certificate->certificate_image));
+            }
+            $imagePath = $request->file('certificate_image')->store('public/certifications');
+            $certificate->certificate_image = Storage::url($imagePath);
+        }
+
+        // Update other fields
+        $certificate->update($request->only('certificate_name', 'certificate_date'));
+
+        return response()->json(['message' => 'Certification updated successfully', 'certificate' => $certificate], 200);
+    }
+
+
+    // Delete Certification
+    public function deleteCertification($id)
+    {
+        $certificate = Certificate::find($id);
+
+        if (!$certificate) {
+            return response()->json(['message' => 'Certification not found'], 404);
+        }
+
+        // Check ownership
+        if ($certificate->professional_ID !== $this->getProfessionalId()) {
+            return response()->json(['message' => 'Unauthorized action'], 403);
+        }
+
+        // Delete the image from storage
+        if ($certificate->certificate_image) {
+            Storage::delete(str_replace('/storage', 'public', $certificate->certificate_image));
+        }
+
+        $certificate->delete();
+
+        return response()->json(['message' => 'Certification deleted successfully'], 200);
+    }
+
+    // Get Certification by ID
+    public function getCertification($id)
+    {
+        $certificate = Certificate::find($id);
+
+        if (!$certificate) {
+            return response()->json(['message' => 'Certification not found'], 404);
+        }
+
+        // Check ownership
+        if ($certificate->professional_ID !== $this->getProfessionalId()) {
+            return response()->json(['message' => 'Unauthorized action'], 403);
+        }
+
+        return response()->json(['certificate' => $certificate], 200);
+    }
+
+    // Search Certifications
+    public function searchCertification(Request $request)
+    {
+        $query = $request->query('query');
+        $professionalId = $this->getProfessionalId();
+
+        if (!$professionalId) {
+            return response()->json(['message' => 'Professional ID not found'], 404);
+        }
+
+        $certificates = Certificate::where('professional_ID', $professionalId)
+            ->where(function ($q) use ($query) {
+                $q->where('certificate_name', 'like', "%$query%")
+                    ->orWhere('certificate_date', 'like', "%$query%");
+            })
+            ->get();
+
+        return response()->json(['certificates' => $certificates], 200);
+    }
 }

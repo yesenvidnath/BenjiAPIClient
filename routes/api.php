@@ -30,7 +30,7 @@ Route::prefix('user-management-service')->group(function () {
         Route::post('/reset-password', [UserController::class, 'resetPassword']);
 
         Route::middleware('auth:sanctum')->group(function () {
-            // Manage Profile routs
+            // Manage Profile routes
             Route::put('/profile/update', [UserController::class, 'updateProfile']);
             Route::delete('/profile/delete', [UserController::class, 'deleteProfile']);
             Route::get('/profile/get/{id}', [UserController::class, 'getProfile']);
@@ -57,3 +57,4 @@ Route::prefix('user-management-service')->group(function () {
         Route::get('/income-sources/get/{id}', [IncomeManagementController::class, 'getIncomeSource']);
     });
 });
+

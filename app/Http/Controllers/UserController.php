@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
-
     /**
      * Helper method to retrieve the authenticated user's ID.
      */
@@ -45,36 +44,77 @@ class UserController extends Controller
     public function register(Request $request)
     {
         $request->validate([
+            'type' => 'required|string|in:Customer,Professional,Admin',
             'first_name' => 'nullable|string',
             'last_name' => 'nullable|string',
             'address' => 'nullable|string',
-            'type' => 'required|string',
             'DOB' => 'required|date',
             'phone_number' => 'required|string|unique:users',
             'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'profile_image' => 'nullable|string',
             'bank_choice' => 'nullable|string',
+            'certificateID' => 'nullable|string', // Only used if type is Professional
+            'adminDescription' => 'nullable|string', // Only used if type is Admin
+            'incomeSourceName' => 'nullable|string', // Only used if type is Professional or Customer
+            'incomeAmount' => 'nullable|numeric',
+            'incomeFrequency' => 'nullable|string|in:monthly,annual',
+            'incomeDescription' => 'nullable|string',
         ]);
 
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'address' => $request->address,
-            'type' => $request->type,
-            'DOB' => $request->DOB,
-            'phone_number' => $request->phone_number,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'profile_image' => $request->profile_image,
-            'bank_choice' => $request->bank_choice,
+        // Prepare parameters for the stored procedure
+        $type = $request->type;
+        $first_name = $request -> first_name;
+        $last_name = $request-> last_name;
+        $address = $request->address;
+        $DOB = $request->DOB;
+        $phone = $request->phone_number;
+        $email = $request->email;
+        $password = Hash::make($request->password); // Hash password before passing to the procedure
+        $profileImage = $request->profile_image;
+        $bankChoice = $request->bank_choice;
+
+        // Additional parameters based on user type
+        $certificateID = $type === 'Professional' ? $request->certificateID : null;
+        $adminDescription = $type === 'Admin' ? $request->adminDescription : null;
+        $incomeSourceName = $type !== 'Admin' ? $request->incomeSourceName : null;
+        $incomeAmount = $type !== 'Admin' ? $request->incomeAmount : null;
+        $incomeFrequency = $type !== 'Admin' ? $request->incomeFrequency : null;
+        $incomeDescription = $type !== 'Admin' ? $request->incomeDescription : null;
+
+        // Call the stored procedure
+        DB::statement("CALL CreateUserAccount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            $type,
+            $first_name,
+            $last_name,
+            $address,
+            $DOB,
+            $phone,
+            $email,
+            $password,
+            $profileImage,
+            $bankChoice,
+            $certificateID,
+            $adminDescription,
+            $incomeSourceName,
+            $incomeAmount,
+            $incomeFrequency,
+            $incomeDescription,
         ]);
 
-        // Automatically log in the user after registration
+        // Retrieve the new user by email to generate a token
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User registration failed'], 500);
+        }
+
+        // Generate token for the newly registered user
         $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json(['user' => $user, 'token' => $token], 201);
     }
+
 
     public function login(Request $request)
     {

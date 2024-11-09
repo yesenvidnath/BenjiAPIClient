@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\IncomeManagementController;
+use App\Http\Controllers\UserCommunicationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +56,12 @@ Route::prefix('user-management-service')->group(function () {
         Route::delete('/income-sources/delete/{id}', [IncomeManagementController::class, 'deleteIncomeSource']);
         Route::get('/income-sources/search', [IncomeManagementController::class, 'searchIncomeSources']);
         Route::get('/income-sources/get/{id}', [IncomeManagementController::class, 'getIncomeSource']);
+    });
+
+    // Notification management routes
+    Route::prefix('notify')->middleware('auth:sanctum')->group(function () {
+        Route::post('/send', [UserCommunicationController::class, 'sendNotification']);
+        Route::post('/send-bulk', [UserCommunicationController::class, 'sendBulkNotification']);
     });
 });
 

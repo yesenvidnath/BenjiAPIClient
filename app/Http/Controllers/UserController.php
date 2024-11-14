@@ -148,6 +148,19 @@ class UserController extends Controller
         return response()->json(['message' => 'Login successful', 'token' => $token], 200);
     }
 
+    public function getAuthenticatedUser(Request $request)
+    {
+        // Retrieve the authenticated user
+        $user = $request->user();
+
+        // Return user details
+        if ($user) {
+            return response()->json(['user' => $user], 200);
+        } else {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
+    }
+
     // User Logout
     public function logout(Request $request)
     {

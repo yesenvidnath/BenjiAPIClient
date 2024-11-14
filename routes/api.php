@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Service 01. User Management
 Route::prefix('user-management-service')->group(function () {
 
     // Authentication-related routes
@@ -32,6 +33,7 @@ Route::prefix('user-management-service')->group(function () {
 
         Route::middleware('auth:sanctum')->group(function () {
             // Manage Profile routes
+            Route::get('/profile/me', [UserController::class, 'getAuthenticatedUser']);
             Route::put('/profile/update', [UserController::class, 'updateProfile']);
             Route::delete('/profile/delete', [UserController::class, 'deleteProfile']);
             Route::get('/profile/get/{id}', [UserController::class, 'getProfile']);
@@ -63,5 +65,6 @@ Route::prefix('user-management-service')->group(function () {
         Route::post('/send', [UserCommunicationController::class, 'sendNotification']);
         Route::post('/send-bulk', [UserCommunicationController::class, 'sendBulkNotification']);
     });
+
 });
 

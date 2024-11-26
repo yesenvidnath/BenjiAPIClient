@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\IncomeManagementController;
+use App\Http\Controllers\artisan\clean;
 use App\Http\Controllers\UserCommunicationController;
 
 /*
@@ -20,6 +21,9 @@ use App\Http\Controllers\UserCommunicationController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/clear-cache', [Clean::class, 'ClearCache']);
+
 
 // Service 01. User Management
 Route::prefix('user-management-service')->group(function () {

@@ -20,3 +20,6 @@ Route::get('/', function () {
 Route::get('/reset-password/{token}', function ($token) {
     return response()->json(['token' => $token]);
 })->name('password.reset');
+
+
+// Route to clear chache

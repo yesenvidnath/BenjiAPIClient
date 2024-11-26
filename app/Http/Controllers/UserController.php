@@ -25,7 +25,7 @@ class UserController extends Controller
         // Retrieve the authenticated user
         $user = Auth::user();
 
-        // Check if the user is authenticated and return the user_ID
+        // Check if the user is authenticated and return the user_ID0
         return $user ? $user->user_ID : null;
     }
 
@@ -45,65 +45,47 @@ class UserController extends Controller
     {
         $request->validate([
             'type' => 'required|string|in:Customer,Professional,Admin',
-            'first_name' => 'nullable|string',
-            'last_name' => 'nullable|string',
-            'address' => 'nullable|string',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
             'DOB' => 'required|date',
-            'phone_number' => 'required|string|unique:users',
-            'email' => 'required|string|email|unique:users',
+            'phone_number' => 'required|string|max:20|unique:users',
+            'email' => 'required|string|email|max:100|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'profile_image' => 'nullable|string',
-            'bank_choice' => 'nullable|string',
-            'certificateID' => 'nullable|string', // Only used if type is Professional
-            'adminDescription' => 'nullable|string', // Only used if type is Admin
-            'incomeSourceName' => 'nullable|string', // Only used if type is Professional or Customer
-            'incomeAmount' => 'nullable|numeric',
-            'incomeFrequency' => 'nullable|string|in:monthly,annual',
-            'incomeDescription' => 'nullable|string',
+            'profile_image' => 'nullable|string|max:255',
+            'bank_choice' => 'nullable|string|max:255',
+            'incomeSources' => 'nullable|array',
+            'incomeSources.*.source_name' => 'required|string|max:255',
+            'incomeSources.*.amount' => 'required|numeric|min:0',
+            'incomeSources.*.frequency' => 'required|in:monthly,yearly,daily,weekly',
+            'incomeSources.*.description' => 'nullable|string|max:255',
         ]);
 
-        // Prepare parameters for the stored procedure
-        $type = $request->type;
-        $first_name = $request -> first_name;
-        $last_name = $request-> last_name;
-        $address = $request->address;
-        $DOB = $request->DOB;
-        $phone = $request->phone_number;
-        $email = $request->email;
-        $password = Hash::make($request->password); // Hash password before passing to the procedure
-        $profileImage = $request->profile_image;
-        $bankChoice = $request->bank_choice;
+        // Hash the password before storing it
+        $hashedPassword = Hash::make($request->password);
 
-        // Additional parameters based on user type
-        $certificateID = $type === 'Professional' ? $request->certificateID : null;
-        $adminDescription = $type === 'Admin' ? $request->adminDescription : null;
-        $incomeSourceName = $type !== 'Admin' ? $request->incomeSourceName : null;
-        $incomeAmount = $type !== 'Admin' ? $request->incomeAmount : null;
-        $incomeFrequency = $type !== 'Admin' ? $request->incomeFrequency : null;
-        $incomeDescription = $type !== 'Admin' ? $request->incomeDescription : null;
+        // Prepare the JSON array for incomeSources
+        $incomeSourcesJson = json_encode($request->incomeSources ?? []);
 
         // Call the stored procedure
-        DB::statement("CALL CreateUserAccount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-            $type,
-            $first_name,
-            $last_name,
-            $address,
-            $DOB,
-            $phone,
-            $email,
-            $password,
-            $profileImage,
-            $bankChoice,
-            $certificateID,
-            $adminDescription,
-            $incomeSourceName,
-            $incomeAmount,
-            $incomeFrequency,
-            $incomeDescription,
+        DB::statement("CALL CreateUserAccount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            $request->type,
+            $request->first_name,
+            $request->last_name,
+            $request->address,
+            $request->DOB,
+            $request->phone_number,
+            $request->email,
+            $hashedPassword,
+            $request->profile_image,
+            $request->bank_choice,
+            $request->certificateID ?? null,
+            $request->adminDescription ?? null,
+            $incomeSourcesJson,
         ]);
 
         // Retrieve the new user by email to generate a token
-        $user = User::where('email', $email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             return response()->json(['message' => 'User registration failed'], 500);
@@ -306,14 +288,6 @@ class UserController extends Controller
 
         return response()->json(['users' => $users], 200);
     }
-
-
-
-
-
-
-
-
 
     // Add Certification
     public function addCertification(Request $request)

@@ -57,4 +57,71 @@ DELIMITER ;
 
 
 02.
+Procedure name : ConvertCustomerToProfessional
+
+DELIMITER //
+
+CREATE PROCEDURE ConvertCustomerToProfessional(
+    IN userID BIGINT,                          -- User ID of the customer
+    IN certificateDetails JSON,                 -- JSON array of certificates
+    IN professionalType ENUM('Accountant', 'Financial Advisor', 'Stock Broker', 'Banker', 'Insurance Agent', 'Investment Specialist', 'Tax Consultant', 'Real Estate Agent', 'Loan Officer', 'Wealth Manager', 'Mortgage Advisor', 'Retirement Planner', 'Business Consultant', 'Other') -- Type of professional
+)
+BEGIN
+    DECLARE professionalID BIGINT;
+    DECLARE certificateIndex INT DEFAULT 0;
+    DECLARE certificateCount INT;
+    DECLARE certificateID VARCHAR(255);
+    DECLARE certificateName VARCHAR(255);
+    DECLARE certificateDate DATE;
+    DECLARE certificateImage VARCHAR(255);
+
+    -- Check if the user exists in the 'customers' table and is active
+    IF EXISTS (SELECT 1 FROM customers WHERE user_ID = userID AND status = 'active') THEN
+
+        -- Step 1: Create the Professional record with default status 'pending' and the specified type
+        INSERT INTO professionals (user_ID, status, type, created_at, updated_at)
+        VALUES (userID, 'pending', professionalType, NOW(), NOW());
+
+        SET professionalID = userID;  -- Since userID is used as the professional_ID in professionals table
+
+        -- Step 2: Insert multiple certificates from JSON
+        SET certificateCount = JSON_LENGTH(certificateDetails);
+
+        -- Loop through each certificate in the JSON array
+        WHILE certificateIndex < certificateCount DO
+            -- Extract the certificate details from the JSON array
+            SET certificateID = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateID')));
+            SET certificateName = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateName')));
+            SET certificateDate = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateDate')));
+            SET certificateImage = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateImage')));
+
+            -- Insert the certificate into the certificates table
+            INSERT INTO certificates (professional_ID, certificate_ID, certificate_name, certificate_date, certificate_image, created_at, updated_at)
+            VALUES (professionalID, certificateID, certificateName, certificateDate, certificateImage, NOW(), NOW());
+
+            -- Move to the next certificate in the array
+            SET certificateIndex = certificateIndex + 1;
+        END WHILE;
+
+        -- Step 3: Update the customer's status to 'converted'
+        UPDATE customers
+        SET status = 'converted', updated_at = NOW()
+        WHERE user_ID = userID;
+
+    ELSE
+        -- If the user is not found or not an active customer, raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User is not an active customer';
+    END IF;
+
+END //
+
+DELIMITER ;
+
+03.
+Procedure name :
+
+04.
+Procedure name :
+
+05.
 Procedure name :

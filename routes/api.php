@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\artisan\clean;
 use App\Http\Controllers\UserCommunicationController;
+use App\Http\Controllers\Professionals\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,5 +71,13 @@ Route::prefix('user-management-service')->group(function () {
         Route::post('/send-bulk', [UserCommunicationController::class, 'sendBulkNotification']);
     });
 
-});
 
+    // Profeshnal Management
+    Route::middleware('auth:sanctum')->group(function (){
+
+        Route::prefix('professional')->group(function () {
+            Route::post('/convert-to-professional', [ProfileController::class, 'convertCustomerToProfessional']);
+        });
+    });
+
+});

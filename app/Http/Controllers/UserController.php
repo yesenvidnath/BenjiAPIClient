@@ -194,12 +194,6 @@ class UserController extends Controller
     }
 
 
-
-
-
-
-
-
     public function updateProfile(Request $request)
     {
         // Validate the incoming request data
@@ -298,6 +292,7 @@ class UserController extends Controller
             'certificate_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Only images allowed
         ]);
 
+        // Get the professional's user ID (professional_ID)
         $professionalId = $this->getProfessionalId();
 
         if (!$professionalId) {
@@ -310,7 +305,7 @@ class UserController extends Controller
 
         // Save certification details in the database
         $certificate = Certificate::create([
-            'professional_ID' => $professionalId,
+            'professional_ID' => $professionalId,  // Use professional's user_ID here
             'certificate_name' => $request->certificate_name,
             'certificate_date' => $request->certificate_date,
             'certificate_image' => $imageUrl,
@@ -318,6 +313,7 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Certification added successfully', 'certificate' => $certificate], 201);
     }
+
 
 
     // Update Certification
@@ -329,20 +325,24 @@ class UserController extends Controller
             'certificate_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // Find the certificate
         $certificate = Certificate::find($id);
 
         if (!$certificate) {
             return response()->json(['message' => 'Certification not found'], 404);
         }
 
-        // Check ownership
-        if ($certificate->professional_ID !== $this->getProfessionalId()) {
+        // Get the professional's user ID (professional_ID)
+        $professionalId = $this->getProfessionalId();
+
+        // Check if the certificate belongs to the current professional
+        if ($certificate->professional_ID !== $professionalId) {
             return response()->json(['message' => 'Unauthorized action'], 403);
         }
 
-        // Update the image if provided
+        // Update the image if a new one is provided
         if ($request->hasFile('certificate_image')) {
-            // Delete old image
+            // Delete the old image if exists
             if ($certificate->certificate_image) {
                 Storage::delete(str_replace('/storage', 'public', $certificate->certificate_image));
             }
@@ -355,6 +355,7 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Certification updated successfully', 'certificate' => $certificate], 200);
     }
+
 
 
     // Delete Certification

@@ -7,7 +7,9 @@ use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\artisan\clean;
 use App\Http\Controllers\UserCommunicationController;
 use App\Http\Controllers\Professionals\ProfileController;
-
+use App\Http\Controllers\ExpensessController;
+use App\Http\Controllers\admin\CategorieController;
+use App\Http\Controllers\admin\ReasonController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -69,6 +71,13 @@ Route::prefix('user-management-service')->group(function () {
     Route::prefix('notify')->middleware('auth:sanctum')->group(function () {
         Route::post('/send', [UserCommunicationController::class, 'sendNotification']);
         Route::post('/send-bulk', [UserCommunicationController::class, 'sendBulkNotification']);
+        Route::post('/mark-read', [UserCommunicationController::class, 'markNotificationAsRead']);
+        Route::delete('/delete', [UserCommunicationController::class, 'deleteNotification']);
+    });
+
+
+    Route::prefix('expenses')->middleware('auth:sanctum')->group(function () {
+        Route::post('/add-expense', [ExpensessController::class, 'addExpense']);
     });
 
 
@@ -81,4 +90,20 @@ Route::prefix('user-management-service')->group(function () {
         });
     });
 
+
+    /*Admin*/
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategorieController::class, 'index']);         // Get all categories
+        Route::get('{id}', [CategorieController::class, 'show']);       // Get a single category by ID
+        Route::post('/', [CategorieController::class, 'store']);        // Create a new category
+        Route::put('{id}', [CategorieController::class, 'update']);     // Update an existing category
+        Route::delete('{id}', [CategorieController::class, 'destroy']); // Delete a category
+    });
+
+    Route::prefix('reasons')->group(function () {
+        Route::get('/', [ReasonController::class, 'getAllReasons']); // Get all reasons
+        Route::post('/', [ReasonController::class, 'store']);        // Create a new reason
+        Route::put('{id}', [ReasonController::class, 'update']);     // Update an existing reason
+        Route::delete('{id}', [ReasonController::class, 'destroy']); // Delete a reason
+    });
 });

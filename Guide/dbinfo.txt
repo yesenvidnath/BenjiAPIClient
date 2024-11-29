@@ -120,6 +120,43 @@ DELIMITER ;
 03.
 Procedure name :
 
+DELIMITER //
+
+CREATE PROCEDURE AddExpense(
+    IN authUserID BIGINT,                         -- Authenticated user ID
+    IN reasonID BIGINT,                           -- Reason ID from 'reasons' table
+    IN amount DECIMAL(10, 2),                     -- Expense amount
+    IN comment TEXT,                              -- Comment for the expense
+    IN description VARCHAR(255)                   -- Description for the expense list
+)
+BEGIN
+    DECLARE isAdmin BOOLEAN;
+    DECLARE expensesListID BIGINT;               -- Declare the expensesListID variable at the beginning
+
+    -- Step 1: Check if the authenticated user is an admin
+    SET isAdmin = EXISTS (SELECT 1 FROM admins WHERE user_ID = authUserID);
+
+    -- If the user is not an admin, deny access
+    IF NOT isAdmin THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unauthorized. Only admins can add expenses.';
+    END IF;
+
+    -- Step 2: Insert the expense details into the 'expenses_list' table
+    INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at)
+    VALUES (reasonID, amount, description, NOW(), NOW());
+
+    -- Step 3: Get the ID of the inserted record in 'expenses_list'
+    SET expensesListID = LAST_INSERT_ID();
+
+    -- Step 4: Insert the expense record into the 'expenses' table
+    INSERT INTO expenses (user_ID, expenseslist_ID, comment, created_at, updated_at)
+    VALUES (authUserID, expensesListID, comment, NOW(), NOW());
+
+END //
+
+DELIMITER ;
+
+
 04.
 Procedure name :
 

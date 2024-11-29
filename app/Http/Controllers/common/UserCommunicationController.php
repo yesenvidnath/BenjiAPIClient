@@ -7,9 +7,47 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Helper;
+
 
 class UserCommunicationController extends Controller
 {
+
+    /**
+    * Helper method to retrieve the authenticated user's ID.
+    */
+    private function getAuthenticatedUserId()
+    {
+        // Retrieve the authenticated user
+        $user = Auth::user();
+
+        // Check if the user is authenticated and return the user_ID
+        return $user ? $user->user_ID : null;
+    }
+
+
+    /**
+     * Parse the notification IDs from the request.
+     * Handles both individual IDs (e.g., "1,2,3") and ranges (e.g., "1-10").
+     *
+     * @param string $input
+     * @return array
+     */
+    private function parseNotificationIds($input)
+    {
+        // If input is a range with dash (e.g., "1-10")
+        if (preg_match('/^(\d+)\s*-\s*(\d+)$/', $input, $matches)) {
+            // Generate an array of IDs from the range
+            return range($matches[1], $matches[2]);
+        }
+
+        // Otherwise, assume input is a comma-separated list of IDs (e.g., "1,2,3,4")
+        return array_map('intval', explode(',', $input));
+    }
+
+
+
     /**
      * Send Notification to Specific Users
     **/
@@ -115,4 +153,48 @@ class UserCommunicationController extends Controller
 
         return response()->json(['message' => 'Bulk notification sent successfully'], 200);
     }
+
+    /**
+    * Mark a notification as read (or unread)
+    */
+
+    public function markNotificationAsRead(Request $request)
+    {
+        $request->validate([
+            'notification_id' => 'required|string', // The ID(s) can be a string (to handle both range and array)
+        ]);
+
+        // Get the notification IDs from the request
+        $notificationIds = $this->parseNotificationIds($request->notification_id); // Parse the IDs
+
+        // Update notifications to mark as read for the authenticated user
+        Notification::whereIn('notification_ID', $notificationIds)
+            ->where('user_ID', $this->getAuthenticatedUserId()) // Ensure only the authenticated user can update their notifications
+            ->update(['is_read' => 1]);
+
+        return response()->json(['message' => 'Notifications marked as read successfully.'], 200);
+    }
+
+
+    /**
+     * Delete a notification
+    */
+
+    public function deleteNotification(Request $request)
+    {
+        $request->validate([
+            'notification_id' => 'required|string', // The ID(s) can be a string (to handle both range and array)
+        ]);
+
+        // Get the notification IDs from the request
+        $notificationIds = $this->parseNotificationIds($request->notification_id); // Parse the IDs
+
+        // Delete notifications for the authenticated user
+        Notification::whereIn('notification_ID', $notificationIds)
+            ->where('user_ID', $this->getAuthenticatedUserId()) // Ensure only the authenticated user can delete their notifications
+            ->delete();
+
+        return response()->json(['message' => 'Notifications deleted successfully.'], 200);
+    }
+
 }

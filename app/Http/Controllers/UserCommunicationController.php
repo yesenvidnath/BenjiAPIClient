@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class UserCommunicationController extends Controller
 {
@@ -66,6 +67,22 @@ class UserCommunicationController extends Controller
     **/
     public function sendBulkNotification(Request $request)
     {
+
+        // Get the authenticated user
+        $authenticatedUser = Auth::user();
+
+        // Check if the authenticated user is an admin
+        $isAdmin = DB::table('admins')
+            ->where('user_ID', $authenticatedUser->user_ID)
+            ->exists();
+
+        // If not an admin, deny access
+        if (!$isAdmin) {
+            return response()->json([
+                'message' => 'Unauthorized. Only admins can update professional profiles.'
+            ], 403);
+        }
+
         $request->validate([
             'type' => 'required|in:meeting,payment,general',
             'message' => 'required|string|max:255',
@@ -73,6 +90,7 @@ class UserCommunicationController extends Controller
             'start_user_ID' => 'nullable|integer',
             'end_user_ID' => 'nullable|integer',
         ]);
+
 
         // Build query to select users for bulk notification
         $query = User::query();

@@ -1,21 +1,134 @@
 <?php
 
-namespace App\Http\Controllers\professionals;
+namespace App\Http\Controllers\Professionals;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Professional;
-use App\Models\Certificate;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
+    /**
+     * Convert customer to professional
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function convertToProfessional(Request $request)
+    {
+        // Validate the incoming request
+        try {
+            $validatedData = $request->validate([
+                'professionalType' => 'required|in:Accountant,Financial Advisor,Stock Broker,Banker,Insurance Agent,Investment Specialist,Tax Consultant,Real Estate Agent,Loan Officer,Wealth Manager,Mortgage Advisor,Retirement Planner,Business Consultant,Other',
+                'certificates' => 'required|array',
+                'certificates.*.certificateName' => 'required|string|max:255',
+                'certificates.*.certificateDate' => 'required|date',
+                'certificates.*.certificateImage' => 'required|image|mimes:jpg,jpeg,png|max:1024', // 1MB max
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
 
-    // Helper method to retrieve the authenticated user's ID
-    public function getAuthenticatedUserId()
+        // Get authenticated user ID
+        $userID = $this->getAuthenticatedUserId();
+        if (!$userID) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Start database transaction
+        DB::beginTransaction();
+        try {
+            // Prepare certificates data with uploaded image paths
+            $certificatesData = [];
+
+            // Debug: Print out the entire request files
+            Log::info('Request Files:', ['files' => $request->allFiles()]);
+
+            // Iterate through certificates
+            foreach ($validatedData['certificates'] as $index => $certificateDetails) {
+                // Get the file for this certificate
+                $certificateFile = $request->file("certificates.{$index}.certificateImage");
+
+                // Generate encrypted filename
+                $encryptedFileName = $this->uploadCertificateImage($certificateFile);
+
+                // Prepare certificate data
+                $certificatesData[] = [
+                    'certificateID' => Str::uuid()->toString(), // Generate unique ID
+                    'certificateName' => $certificateDetails['certificateName'],
+                    'certificateDate' => $certificateDetails['certificateDate'],
+                    'certificateImage' => $encryptedFileName
+                ];
+            }
+
+            // Call stored procedure
+            DB::statement('CALL ConvertCustomerToProfessional(?, ?, ?)', [
+                $userID,
+                json_encode($certificatesData),
+                $validatedData['professionalType']
+            ]);
+
+            // Commit transaction
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Successfully converted to professional',
+                'certificates' => $certificatesData
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Rollback transaction
+            DB::rollBack();
+
+            // Log the error
+            Log::error('Professional conversion error: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'message' => 'Failed to convert to professional',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload certificate image
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return string
+     */
+
+    private function uploadCertificateImage($file)
+    {
+        // Validate file
+        if (!$file || !$file->isValid()) {
+            throw new \Exception('Invalid file upload');
+        }
+
+        // Generate an encrypted filename
+        $originalExtension = $file->getClientOriginalExtension();
+        $encryptedFileName = Str::random(40) . '.' . $originalExtension;
+
+        // Store the file in the certificates directory
+        $path = $file->storeAs('certificates', $encryptedFileName, 'public');
+
+        return $encryptedFileName;
+    }
+
+    /**
+     * Helper method to retrieve the authenticated user's ID
+     *
+     * @return int|null
+     */
+    private function getAuthenticatedUserId()
     {
         // Retrieve the authenticated user
         $user = Auth::user();
@@ -24,79 +137,117 @@ class ProfileController extends Controller
         return $user ? $user->user_ID : null;
     }
 
-    // Function to convert customer to professional
-    public function convertCustomerToProfessional(Request $request)
+
+
+    /**
+     * Update Professional Status and Type
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+    */
+
+
+    public function updateProfessionalProfile(Request $request)
     {
-        // Get the authenticated user's ID using the helper method
-        $userId = $this->getAuthenticatedUserId();
+        // Get the authenticated user
+        $authenticatedUser = Auth::user();
 
-        // If no authenticated user is found, return an error response
-        if (!$userId) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        // Check if the authenticated user is an admin
+        $isAdmin = DB::table('admins')
+            ->where('user_ID', $authenticatedUser->user_ID)
+            ->exists();
+
+        // If not an admin, deny access
+        if (!$isAdmin) {
+            return response()->json([
+                'message' => 'Unauthorized. Only admins can update professional profiles.'
+            ], 403);
         }
 
-        // Validate incoming request
-        $validator = Validator::make($request->all(), [
-            'certificate_details' => 'required|array',
-            'certificate_details.*.certificate_name' => 'required|string',
-            'certificate_details.*.certificate_date' => 'required|date',
-            'certificate_details.*.certificate_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'professional_type' => 'required|in:Accountant,Financial Advisor,Stock Broker,Banker,Insurance Agent,Investment Specialist,Tax Consultant,Real Estate Agent,Loan Officer,Wealth Manager,Mortgage Advisor,Retirement Planner,Business Consultant,Other',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+        // Validate the incoming request
+        try {
+            $validatedData = $request->validate([
+                'user_ID' => 'required|exists:users,user_ID',
+                'status' => 'sometimes|in:pending,active,banned,suspended',
+                'type' => 'sometimes|in:Accountant,Financial Advisor,Stock Broker,Banker,Insurance Agent,Investment Specialist,Tax Consultant,Real Estate Agent,Loan Officer,Wealth Manager,Mortgage Advisor,Retirement Planner,Business Consultant,Other'
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         }
 
-        $certificateDetails = $request->input('certificate_details');
-        $professionalType = $request->input('professional_type');
+        // Start database transaction
+        DB::beginTransaction();
+        try {
+            // Prepare the update query
+            $updateData = [];
+            $bindings = [];
 
-        // Step 1: Find the user
-        $user = User::findOrFail($userId);
-
-        // Step 2: Create the professional record
-        $professional = Professional::create([
-            'user_ID' => $user->user_ID,
-            'status' => 'pending',
-            'type' => $professionalType,
-        ]);
-
-        // Step 3: Handle the certificate details
-        foreach ($certificateDetails as $certificate) {
-            $certificateName = $certificate['certificate_name'];
-            $certificateDate = $certificate['certificate_date'];
-            $certificateImage = $certificate['certificate_image'];
-
-            // If there is a certificate image, handle the file upload
-            if ($certificateImage) {
-                // Check if the certificate image is a URL or a file
-                if (filter_var($certificateImage, FILTER_VALIDATE_URL)) {
-                    $certificateImagePath = $certificateImage; // If URL, use the URL as is
-                } else {
-                    // If it's a file, upload to the storage
-                    $certificateImagePath = $certificateImage->store('certificates', 'public');
-                }
-            } else {
-                $certificateImagePath = null;
+            // Check if status is being updated
+            if (isset($validatedData['status'])) {
+                $updateData[] = 'status = ?';
+                $bindings[] = $validatedData['status'];
             }
 
-            // Step 4: Insert the certificate into the database
-            Certificate::create([
-                'professional_ID' => $professional->user_ID,
-                'certificate_name' => $certificateName,
-                'certificate_date' => $certificateDate,
-                'certificate_image' => $certificateImagePath,
+            // Check if type is being updated
+            if (isset($validatedData['type'])) {
+                $updateData[] = 'type = ?';
+                $bindings[] = $validatedData['type'];
+            }
+
+            // If no updates are specified, return error
+            if (empty($updateData)) {
+                return response()->json([
+                    'message' => 'No update fields provided'
+                ], 400);
+            }
+
+            // Add user_ID to bindings
+            $bindings[] = $validatedData['user_ID'];
+
+            // Construct and execute the update query
+            $query = "UPDATE professionals SET " . implode(', ', $updateData) .
+                    ", updated_at = NOW() " . // Always update timestamp
+                    "WHERE user_ID = ?";
+
+            $affected = DB::update($query, $bindings);
+
+            // Commit transaction
+            DB::commit();
+
+            // Check if any rows were updated
+            if ($affected === 0) {
+                return response()->json([
+                    'message' => 'No professional record found for the given user ID',
+                ], 404);
+            }
+
+            // Log the admin action
+            Log::info('Professional profile updated', [
+                'updated_by_admin' => $authenticatedUser->user_ID,
+                'target_user_ID' => $validatedData['user_ID'],
+                'updated_fields' => array_keys($validatedData)
             ]);
+
+            return response()->json([
+                'message' => 'Professional profile updated successfully',
+                'user_ID' => $validatedData['user_ID'],
+                'updated_fields' => array_keys($validatedData)
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Rollback transaction
+            DB::rollBack();
+
+            // Log the error
+            Log::error('Professional profile update error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Failed to update professional profile',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Step 5: Update the customer's status to 'converted'
-        $user->status = 'converted';
-        $user->save();
-
-        return response()->json([
-            'message' => 'User successfully converted to professional and certificates added.',
-            'professional' => $professional,
-            'certificates' => $certificateDetails,
-        ], 200);
     }
 }

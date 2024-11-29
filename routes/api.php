@@ -76,7 +76,8 @@ Route::prefix('user-management-service')->group(function () {
     Route::middleware('auth:sanctum')->group(function (){
 
         Route::prefix('professional')->group(function () {
-            Route::post('/convert-to-professional', [ProfileController::class, 'convertCustomerToProfessional']);
+            Route::post('/convert-to-professional', [ProfileController::class, 'convertToProfessional']);
+            Route::post('/update-profile', [ProfileController::class, 'updateProfessionalProfile']);
         });
     });
 

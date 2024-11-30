@@ -7,7 +7,7 @@ use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\artisan\clean;
 use App\Http\Controllers\UserCommunicationController;
 use App\Http\Controllers\Professionals\ProfileController;
-use App\Http\Controllers\ExpensessController;
+use App\Http\Controllers\common\ExpensessController;
 use App\Http\Controllers\admin\CategorieController;
 use App\Http\Controllers\admin\ReasonController;
 /*
@@ -90,20 +90,44 @@ Route::prefix('user-management-service')->group(function () {
         });
     });
 
+});
 
-    /*Admin*/
-    Route::prefix('categories')->group(function () {
-        Route::get('/', [CategorieController::class, 'index']);         // Get all categories
-        Route::get('{id}', [CategorieController::class, 'show']);       // Get a single category by ID
-        Route::post('/', [CategorieController::class, 'store']);        // Create a new category
-        Route::put('{id}', [CategorieController::class, 'update']);     // Update an existing category
-        Route::delete('{id}', [CategorieController::class, 'destroy']); // Delete a category
+
+//Service 02. Expensess handling
+Route::prefix('Expensess-Management-service')->group(function () {
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/add', [ExpensessController::class, 'addExpense']);
+        // Change this to PUT and add the {expenseID} parameter
+        Route::put('/update/{expenseID}', [ExpensessController::class, 'updateExpense']);
+        // Delete an individual expense list item and its parent expense if no more items exist
+        Route::delete('/delete-item/{expenseID}/{expenseListItemID}', [ExpensessController::class, 'deleteExpenseItem']);
+        Route::get('/all', [ExpensessController::class, 'getAllExpenses']);
+        Route::get('/data', [ExpensessController::class, 'getUserExpensesInfo']);
+
     });
+});
 
-    Route::prefix('reasons')->group(function () {
-        Route::get('/', [ReasonController::class, 'getAllReasons']); // Get all reasons
-        Route::post('/', [ReasonController::class, 'store']);        // Create a new reason
-        Route::put('{id}', [ReasonController::class, 'update']);     // Update an existing reason
-        Route::delete('{id}', [ReasonController::class, 'destroy']); // Delete a reason
+
+// Service 03. Admin handling
+
+Route::prefix('Admin-Management-service')->group(function () {
+
+    Route::middleware('auth:sanctum')->group(function () {
+
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [CategorieController::class, 'index']);         // Get all categories
+            Route::get('{id}', [CategorieController::class, 'show']);       // Get a single category by ID
+            Route::post('/', [CategorieController::class, 'store']);
+            Route::put('{id}', [CategorieController::class, 'update']);     // Update an existing category
+            Route::delete('{id}', [CategorieController::class, 'destroy']); // Delete a category
+        });
+
+        Route::prefix('reasons')->group(function () {
+            Route::get('/', [ReasonController::class, 'getAllReasons']);
+            Route::post('/', [ReasonController::class, 'store']);        // Create a new reason
+            Route::put('{id}', [ReasonController::class, 'update']);     // Update an existing reason
+            Route::delete('{id}', [ReasonController::class, 'destroy']); // Delete a reason
+        });
     });
 });

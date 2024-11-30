@@ -118,39 +118,66 @@ END //
 DELIMITER ;
 
 03.
-Procedure name :
-
+Procedure name : AddExpense
 DELIMITER //
 
 CREATE PROCEDURE AddExpense(
-    IN authUserID BIGINT,                         -- Authenticated user ID
-    IN reasonID BIGINT,                           -- Reason ID from 'reasons' table
-    IN amount DECIMAL(10, 2),                     -- Expense amount
-    IN comment TEXT,                              -- Comment for the expense
-    IN description VARCHAR(255)                   -- Description for the expense list
+    IN userID BIGINT,                           -- User ID of the person adding the expense
+    IN expensesDetails JSON                     -- JSON array with details for expenses (reason_id, amount, description)
 )
 BEGIN
-    DECLARE isAdmin BOOLEAN;
-    DECLARE expensesListID BIGINT;               -- Declare the expensesListID variable at the beginning
+    DECLARE expensesID BIGINT;
+    DECLARE expenseIndex INT DEFAULT 0;
+    DECLARE expensesCount INT;
+    DECLARE reasonID INT;
+    DECLARE amount DECIMAL(10,2);
+    DECLARE description TEXT;
+    DECLARE reasonName VARCHAR(255);
+    DECLARE categoryID INT;
 
-    -- Step 1: Check if the authenticated user is an admin
-    SET isAdmin = EXISTS (SELECT 1 FROM admins WHERE user_ID = authUserID);
+    -- Step 1: Check if the user exists in either 'customers' or 'professionals' table
+    IF EXISTS (SELECT 1 FROM professionals WHERE user_ID = userID) OR EXISTS (SELECT 1 FROM customers WHERE user_ID = userID) THEN
 
-    -- If the user is not an admin, deny access
-    IF NOT isAdmin THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unauthorized. Only admins can add expenses.';
+        -- Step 2: Insert into the expenses table (without comment)
+        INSERT INTO expenses (user_ID, created_at, updated_at)
+        VALUES (userID, NOW(), NOW());
+
+        -- Get the expenses ID of the newly inserted expense
+        SET expensesID = LAST_INSERT_ID();
+
+        -- Step 3: Process the expense details (insert into expenses_list)
+        SET expensesCount = JSON_LENGTH(expensesDetails);
+
+        -- Loop through the JSON array of expense details
+        WHILE expenseIndex < expensesCount DO
+            -- Extract each expense detail from the JSON array
+            SET reasonID = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].reason_ID')));
+            SET amount = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].amount')));
+            SET description = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].description')));
+
+            -- Insert into the expenses_list table
+            INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at, expenses_id)
+            VALUES (reasonID, amount, description, NOW(), NOW(), expensesID);
+
+            -- Step 4: Retrieve the reason name and category based on the reason_ID
+            SELECT reason, category_ID INTO reasonName, categoryID
+            FROM reasons
+            WHERE reason_ID = reasonID;
+
+            -- Print or log reason and category (if needed for debugging purposes)
+            -- SELECT reasonName, categoryID;
+
+            -- Move to the next expense detail in the JSON array
+            SET expenseIndex = expenseIndex + 1;
+        END WHILE;
+
+        -- Return success message
+        SELECT 'Expense added successfully' AS message;
+
+    ELSE
+        -- If the user does not exist in 'customers' or 'professionals', raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found in customers or professionals table';
     END IF;
-
-    -- Step 2: Insert the expense details into the 'expenses_list' table
-    INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at)
-    VALUES (reasonID, amount, description, NOW(), NOW());
-
-    -- Step 3: Get the ID of the inserted record in 'expenses_list'
-    SET expensesListID = LAST_INSERT_ID();
-
-    -- Step 4: Insert the expense record into the 'expenses' table
-    INSERT INTO expenses (user_ID, expenseslist_ID, comment, created_at, updated_at)
-    VALUES (authUserID, expensesListID, comment, NOW(), NOW());
 
 END //
 
@@ -158,7 +185,109 @@ DELIMITER ;
 
 
 04.
-Procedure name :
+Procedure name : UpdateExpense
+
+DELIMITER //
+
+CREATE PROCEDURE UpdateExpense(
+    IN expenseID BIGINT,
+    IN userID BIGINT,
+    IN expensesDetails JSON
+)
+BEGIN
+    DECLARE expenseIndex INT DEFAULT 0;
+    DECLARE expensesCount INT;
+    DECLARE reasonID INT;
+    DECLARE amount DECIMAL(10,2);
+    DECLARE description TEXT;
+
+    -- Step 1: Check if the expense exists and belongs to the user
+    IF EXISTS (SELECT 1 FROM expenses WHERE expenses_ID = expenseID AND user_ID = userID) THEN
+
+        -- Step 2: Update the expense record (optional, if needed)
+        UPDATE expenses
+        SET updated_at = NOW()
+        WHERE expenses_ID = expenseID;
+
+        -- Step 3: Delete old entries in expenses_list
+        DELETE FROM expenses_list WHERE expenses_id = expenseID;
+
+        -- Step 4: Process the expense details (insert into expenses_list)
+        SET expensesCount = JSON_LENGTH(expensesDetails);
+
+        -- Loop through the JSON array of expense details
+        WHILE expenseIndex < expensesCount DO
+            -- Extract each expense detail from the JSON array
+            SET reasonID = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].reason_ID')));
+            SET amount = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].amount')));
+            SET description = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].description')));
+
+            -- Insert the updated expense details into expenses_list
+            INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at, expenses_id)
+            VALUES (reasonID, amount, description, NOW(), NOW(), expenseID);
+
+            -- Move to the next expense detail in the JSON array
+            SET expenseIndex = expenseIndex + 1;
+        END WHILE;
+
+        -- Return success message
+        SELECT 'Expense updated successfully' AS message;
+
+    ELSE
+        -- If the expense does not exist or the user does not own it, raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Expense not found or user not authorized';
+    END IF;
+
+END //
+
+DELIMITER ;
+
 
 05.
+Procedure name : GetUserExpensesInfo
+
+DELIMITER //
+
+CREATE PROCEDURE GetUserExpensesInfo(
+    IN userID BIGINT                              -- User ID to fetch expenses for
+)
+BEGIN
+    SELECT
+        expenses.expenses_ID,
+        expenses.user_ID,
+        expenses.created_at AS expense_created_at,
+        expenses.updated_at AS expense_updated_at,
+        expenses_list.expenseslist_ID,
+        expenses_list.amount,
+        expenses_list.description,
+        reasons.reason,
+        reasons.reason_ID,
+        categories.category AS category_name,
+        categories.category_ID
+    FROM expenses
+    INNER JOIN expenses_list ON expenses.expenses_ID = expenses_list.expenses_id
+    INNER JOIN reasons ON expenses_list.reason_ID = reasons.reason_ID
+    INNER JOIN categories ON reasons.category_ID = categories.category_ID
+    WHERE expenses.user_ID = userID;
+END //
+
+DELIMITER ;
+
+
+06.
+Procedure name :
+
+07.
+Procedure name :
+
+08.
+Procedure name :
+
+09.
+Procedure name :
+
+10.
+Procedure name :
+
+11.
 Procedure name :

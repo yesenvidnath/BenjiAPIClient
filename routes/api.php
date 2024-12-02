@@ -21,7 +21,7 @@ use App\Http\Controllers\admin\ReasonController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware('auth:sanctum')->get('/usjer', function (Request $request) {
     return $request->user();
 });
 
@@ -58,15 +58,6 @@ Route::prefix('user-management-service')->group(function () {
         });
     });
 
-    // Income management routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/income-sources/add', [IncomeManagementController::class, 'addIncomeSource']);
-        Route::put('/income-sources/update/{id}', [IncomeManagementController::class, 'updateIncomeSource']);
-        Route::delete('/income-sources/delete/{id}', [IncomeManagementController::class, 'deleteIncomeSource']);
-        Route::get('/income-sources/search', [IncomeManagementController::class, 'searchIncomeSources']);
-        Route::get('/income-sources/get/{id}', [IncomeManagementController::class, 'getIncomeSource']);
-    });
-
     // Notification management routes
     Route::prefix('notify')->middleware('auth:sanctum')->group(function () {
         Route::post('/send', [UserCommunicationController::class, 'sendNotification']);
@@ -75,11 +66,9 @@ Route::prefix('user-management-service')->group(function () {
         Route::delete('/delete', [UserCommunicationController::class, 'deleteNotification']);
     });
 
-
-    Route::prefix('expenses')->middleware('auth:sanctum')->group(function () {
-        Route::post('/add-expense', [ExpensessController::class, 'addExpense']);
-    });
-
+    // Route::prefix('expenses')->middleware('auth:sanctum')->group(function () {
+    //     Route::post('/add-expense', [ExpensessController::class, 'addExpense']);
+    // });
 
     // Profeshnal Management
     Route::middleware('auth:sanctum')->group(function (){
@@ -89,7 +78,6 @@ Route::prefix('user-management-service')->group(function () {
             Route::post('/update-profile', [ProfileController::class, 'updateProfessionalProfile']);
         });
     });
-
 });
 
 
@@ -103,18 +91,42 @@ Route::prefix('Expensess-Management-service')->group(function () {
         // Delete an individual expense list item and its parent expense if no more items exist
         Route::delete('/delete-item/{expenseID}/{expenseListItemID}', [ExpensessController::class, 'deleteExpenseItem']);
         Route::get('/all', [ExpensessController::class, 'getAllExpenses']);
-        Route::get('/data', [ExpensessController::class, 'getUserExpensesInfo']);
 
+        // Income management routes
+        Route::post('/income-sources/add', [IncomeManagementController::class, 'addIncomeSource']);
+        Route::put('/income-sources/update/{id}', [IncomeManagementController::class, 'updateIncomeSource']);
+        Route::delete('/income-sources/delete/{id}', [IncomeManagementController::class, 'deleteIncomeSource']);
+        Route::get('/income-sources/search', [IncomeManagementController::class, 'searchIncomeSources']);
+        Route::get('/income-sources/get/{id}', [IncomeManagementController::class, 'getIncomeSource']);
     });
 });
 
 
-// Service 03. Admin handling
-
-Route::prefix('Admin-Management-service')->group(function () {
-
+// Service 03. AI Bot connection
+Route::prefix('Bot-service')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/data', [ExpensessController::class, 'getUserExpensesInfo']);
+    });
+});
 
+
+// Service 04. Meetings handling
+Route::prefix('Meetings-Management-service')->group(function () {
+
+
+});
+
+
+// Service 05. Payment handling
+Route::prefix('Payment-Management-service')->group(function () {
+
+
+});
+
+
+// Service 06. Admin handling
+Route::prefix('Admin-Management-service')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('categories')->group(function () {
             Route::get('/', [CategorieController::class, 'index']);         // Get all categories
             Route::get('{id}', [CategorieController::class, 'show']);       // Get a single category by ID

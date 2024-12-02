@@ -30,6 +30,7 @@ return new class extends Migration
                 'Business Consultant',
                 'Other' // 'Other' type option
             ]);
+            $table->decimal('charge_per_Hr');
             $table->timestamps();
         });
     }

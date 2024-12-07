@@ -275,7 +275,74 @@ DELIMITER ;
 
 
 06.
-Procedure name :
+Procedure name : CreateMeeting
+DELIMITER //
+
+CREATE PROCEDURE CreateMeeting(
+    IN customer_email VARCHAR(100),           -- Customer's email (for user lookup)
+    IN professional_email VARCHAR(100),       -- Professional's email (for user lookup)
+    IN start_time DATETIME,                   -- Start date and time of the meeting
+    OUT meeting_url VARCHAR(255)              -- Google Meet URL for the meeting
+)
+BEGIN
+    DECLARE customer_user_ID BIGINT;
+    DECLARE professional_user_ID BIGINT;
+    DECLARE professional_name VARCHAR(255);
+    DECLARE customer_name VARCHAR(255);
+    DECLARE professional_email VARCHAR(100);
+    DECLARE customer_email VARCHAR(100);
+    DECLARE charge_per_hr DECIMAL(10,2);
+    DECLARE meetingID BIGINT;
+    DECLARE end_time DATETIME;
+
+    -- Step 1: Get the user ID for the customer and professional
+    -- Get customer details: user_ID, first_name + last_name, email
+    SELECT u.user_ID, CONCAT(u.first_name, ' ', u.last_name), u.email
+    INTO customer_user_ID, customer_name, customer_email
+    FROM users u
+    WHERE u.email = customer_email
+    AND EXISTS (SELECT 1 FROM customers c WHERE c.user_ID = u.user_ID AND c.status != 'Active');
+
+    -- Get professional details: user_ID, first_name + last_name, email, charge_per_Hr
+    SELECT p.user_ID, CONCAT(u.first_name, ' ', u.last_name), u.email, p.charge_per_Hr
+    INTO professional_user_ID, professional_name, professional_email, charge_per_hr
+    FROM users u
+    JOIN professionals p ON p.user_ID = u.user_ID
+    WHERE u.email = professional_email
+    AND p.status != 'Active';
+
+    -- Step 2: Insert into the meetings table
+    SET end_time = DATE_ADD(start_time, INTERVAL 1 HOUR); -- Calculate end time as 1 hour later
+
+    INSERT INTO meetings (start_time_date, end_time_date, user_ID_customer, user_ID_professional, meet_url, status, created_at, updated_at)
+    VALUES (start_time, end_time, customer_user_ID, professional_user_ID, NULL, 'inCompleate payment', NOW(), NOW());
+
+    SET meetingID = LAST_INSERT_ID();  -- Get the meeting ID of the newly created record
+
+    -- Step 3: Insert into the payment table
+    INSERT INTO payments (datetime, amount, user_ID, meeting_ID, created_at, updated_at)
+    VALUES (NOW(), charge_per_hr, customer_user_ID, meetingID, NOW(), NOW());
+
+    -- Step 4: Update the meetings table with the Google Meet URL and change status to "Pending"
+    -- Assuming you get the Google Meet URL via an external API and pass it to this procedure
+    UPDATE meetings
+    SET meet_url = meeting_url, status = 'Pending'
+    WHERE meeting_ID = meetingID;
+
+    -- Step 5: Send notifications to both customer and professional
+    -- For the customer:
+    INSERT INTO notifications (user_ID, type, message, created_at, updated_at)
+    VALUES (customer_user_ID, 'meetings', CONCAT('You have a meeting with ', professional_name, ' at ', start_time, ' till ', end_time, '. Your meeting URL is ', meeting_url), NOW(), NOW());
+
+    -- For the professional:
+    INSERT INTO notifications (user_ID, type, message, created_at, updated_at)
+    VALUES (professional_user_ID, 'meetings', CONCAT('You have a meeting with ', customer_name, ' at ', start_time, ' till ', end_time, '. Your meeting URL is ', meeting_url), NOW(), NOW());
+
+    -- Return success message
+    SELECT 'Meeting created successfully' AS message;
+END //
+
+DELIMITER ;
 
 
 07.

@@ -10,6 +10,7 @@ use App\Http\Controllers\Professionals\ProfileController;
 use App\Http\Controllers\common\ExpensessController;
 use App\Http\Controllers\admin\CategorieController;
 use App\Http\Controllers\admin\ReasonController;
+use App\Http\Controllers\MeetingController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -112,8 +113,12 @@ Route::prefix('Bot-service')->group(function () {
 
 // Service 04. Meetings handling
 Route::prefix('Meetings-Management-service')->group(function () {
-
-
+    // Create a new meeting
+    Route::post('/create', [MeetingController::class, 'createMeeting']);
+    // Update an existing meeting
+    Route::patch('/{meetingId}', [MeetingController::class, 'updateMeeting'])->name('api.meetings.update');
+    // Delete a meeting
+    Route::delete('/{meetingId}', [MeetingController::class, 'deleteMeeting'])->name('api.meetings.delete');
 });
 
 

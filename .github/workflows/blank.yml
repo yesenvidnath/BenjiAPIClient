@@ -1,0 +1,32 @@
+name: FTP Deploy
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow when code is pushed to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Upload files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}  # Your FTP server
+          username: ${{ secrets.FTP_USERNAME }}  # Your FTP username
+          password: ${{ secrets.FTP_PASSWORD }}  # Your FTP password
+          port: ${{ secrets.FTP_PORT }}  # Optional, defaults to 21 if not provided
+          local-dir: ./  # Root directory of the repository
+          server-dir: ./  # Replace with your actual FTP server directory
+          exclude: ""
+          # server-dir: /home/insync1/taxiweb.insyncsafety.com/
+          #exclude: |
+           # .git*
+           # .github/
+           # node_modules/
+           # *.md
+          #  force-upload: true  # Optional, forces all files to be uploaded even if unchanged

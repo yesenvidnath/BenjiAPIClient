@@ -1,16 +1,21 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\IncomeManagementController;
-use App\Http\Controllers\artisan\clean;
-use App\Http\Controllers\UserCommunicationController;
 use App\Http\Controllers\Professionals\ProfileController;
+use App\Http\Controllers\UserCommunicationController;
+use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\common\ExpensessController;
 use App\Http\Controllers\admin\CategorieController;
+use App\Http\Controllers\Customer\BookProfeshanal;
 use App\Http\Controllers\admin\ReasonController;
+use App\Http\Controllers\admin\BotController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\artisan\clean;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -106,12 +111,19 @@ Route::prefix('Expensess-Management-service')->group(function () {
 // Service 03. AI Bot connection
 Route::prefix('Bot-service')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/data', [ExpensessController::class, 'getUserExpensesInfo']);
+        Route::get('/expenses', [BotController::class, 'getAllExpenses']);
     });
 });
 
 
 // Service 04. Meetings handling
+
+
+Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
+    Route::post('/book-meeting', [BookProfeshanal::class, 'bookMeeting']);
+});
+
+
 Route::prefix('Meetings-Management-service')->group(function () {
     // Create a new meeting
     Route::post('/create', [MeetingController::class, 'createMeeting']);
@@ -122,12 +134,15 @@ Route::prefix('Meetings-Management-service')->group(function () {
 });
 
 
+
+
+
 // Service 05. Payment handling
+
 Route::prefix('Payment-Management-service')->group(function () {
-
-
+    Route::post('/create-payment', [PaymentController::class, 'createPayment']);
+    Route::post('/payment-notify', [PaymentController::class, 'paymentNotify']);
 });
-
 
 // Service 06. Admin handling
 Route::prefix('Admin-Management-service')->group(function () {

@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('payments', function (Blueprint $table) {
-            $table->id('payment_ID');
-            $table->dateTime('datetime');
-            $table->decimal('amount', 10, 2);
-            $table->decimal('payhere_payment_ID');
+        Schema::create('expenses', function (Blueprint $table) {
+            $table->id('expenses_ID');
             $table->foreignId('user_ID')->constrained('users', 'user_ID');
-            $table->foreignId('meeting_ID')->constrained('meetings', 'meeting_ID');
+            $table->foreignId('expenseslist_ID')->constrained('expenses_list', 'expenseslist_ID');
+            $table->text('comment')->nullable();
             $table->timestamps();
         });
     }
@@ -28,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('payments');
+        Schema::dropIfExists('expenses');
     }
 };

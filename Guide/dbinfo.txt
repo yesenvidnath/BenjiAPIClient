@@ -363,3 +363,32 @@ Procedure name :
 
 11.
 Procedure name :
+
+
+
+Viwes
+
+01.
+CREATE VIEW UserExpenseIncomeView AS
+SELECT DISTINCT
+    users.user_ID,
+    CONCAT(users.first_name, ' ', users.last_name) AS user_name,
+    users.email AS user_email,
+    incomes.source_name AS income_source_name,
+    incomes.amount AS income_amount,
+    incomes.frequency AS income_frequency,
+    incomes.description AS income_description,
+    expenses.expenses_ID AS expense_id,
+    expenses.created_at AS expense_date,
+    expenses_list.reason_ID AS expense_reason_id,
+    expenses_list.amount AS expense_amount,
+    expenses_list.description AS expense_description,
+    reasons.reason AS reason_text,
+    categories.category AS category_name
+FROM
+    (SELECT * FROM users WHERE type != 'Admin') AS users
+LEFT JOIN income_sources AS incomes ON incomes.user_ID = users.user_ID
+LEFT JOIN expenses ON expenses.user_ID = users.user_ID
+LEFT JOIN expenses_list ON expenses_list.expenses_id = expenses.expenses_ID
+LEFT JOIN reasons ON reasons.reason_ID = expenses_list.reason_ID
+LEFT JOIN categories ON categories.category_ID = reasons.category_ID;

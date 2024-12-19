@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,6 +16,17 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+Route::get('/hello', function () {
+    return view('h');
+});
+
+Route::get('/payment/{encryptedDetails}', [PaymentController::class, 'checkout'])->name('payment.checkout');
+
+Route::prefix('payment')->group(function () {
+    Route::get('/return', [PaymentController::class, 'paymentReturn'])->name('payment.return');
+    Route::get('/cancel', [PaymentController::class, 'paymentCancel'])->name('payment.cancel');
+    Route::post('/notify', [PaymentController::class, 'paymentNotify'])->name('payment.notify');
 });
 
 Route::get('/reset-password/{token}', function ($token) {

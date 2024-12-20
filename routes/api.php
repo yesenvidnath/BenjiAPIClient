@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Professionals\ProfileController;
 use App\Http\Controllers\UserCommunicationController;
+//use App\Http\Controllers\common\GroupChatController;
 use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\common\ExpensessController;
 use App\Http\Controllers\admin\CategorieController;
@@ -14,7 +15,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\artisan\clean;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -108,6 +108,7 @@ Route::prefix('Expensess-Management-service')->group(function () {
 });
 
 
+
 // Service 03. AI Bot connection
 Route::prefix('Bot-service')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
@@ -117,7 +118,6 @@ Route::prefix('Bot-service')->group(function () {
 
 
 // Service 04. Meetings handling
-
 
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::post('/book-meeting', [BookProfeshanal::class, 'bookMeeting']);
@@ -134,15 +134,16 @@ Route::prefix('Meetings-Management-service')->group(function () {
 });
 
 
-
-
-
 // Service 05. Payment handling
 
-Route::prefix('Payment-Management-service')->group(function () {
+Route::prefix('Payment-Management-service')->middleware('auth:sanctum')->group(function () {
     Route::post('/create-payment', [PaymentController::class, 'createPayment']);
     Route::post('/payment-notify', [PaymentController::class, 'paymentNotify']);
+
+    Route::post('/finalize-payment', [BookProfeshanal::class, 'finalizeMeetingPayment']);
 });
+
+
 
 // Service 06. Admin handling
 Route::prefix('Admin-Management-service')->group(function () {

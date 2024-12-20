@@ -346,7 +346,90 @@ DELIMITER ;
 
 
 07.
-Procedure name :
+Procedure name : FinalizeMeetingPayment
+
+DELIMITER //
+
+CREATE PROCEDURE FinalizeMeetingPayment(
+    IN meetingID BIGINT,             -- Meeting ID to be updated
+    IN meetURL VARCHAR(255),         -- Zoom meeting link
+    IN paymentAmount DECIMAL(10, 2)  -- Payment amount
+)
+BEGIN
+    DECLARE customer_user_ID BIGINT;
+    DECLARE professional_user_ID BIGINT;
+    DECLARE start_time DATETIME;
+    DECLARE end_time DATETIME;
+    DECLARE customer_name VARCHAR(255);
+    DECLARE professional_name VARCHAR(255);
+    DECLARE reasonID INT;
+    DECLARE expenseDetails JSON;
+
+    -- Step 1: Retrieve meeting details
+    SELECT user_ID_customer, user_ID_professional, start_time_date, end_time_date
+    INTO customer_user_ID, professional_user_ID, start_time, end_time
+    FROM meetings
+    WHERE meeting_ID = meetingID;
+
+    -- Step 2: Retrieve names from the users table
+    SELECT CONCAT(first_name, ' ', last_name)
+    INTO customer_name
+    FROM users
+    WHERE user_ID = customer_user_ID;
+
+    SELECT CONCAT(first_name, ' ', last_name)
+    INTO professional_name
+    FROM users
+    WHERE user_ID = professional_user_ID;
+
+    -- Step 3: Fetch the reason ID for "Benji Professional Meetup"
+    SELECT reason_ID
+    INTO reasonID
+    FROM reasons
+    WHERE reason = 'Benji Professional Meetup';
+
+    -- Ensure the reason ID is not NULL
+    IF reasonID IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Reason "Benji Professional Meetup" does not exist in the reasons table.';
+    END IF;
+
+    -- Step 4: Update the meetings table
+    UPDATE meetings
+    SET meet_url = meetURL, status = 'pending', updated_at = NOW()
+    WHERE meeting_ID = meetingID;
+
+    -- Step 5: Create notifications for both the professional and customer
+    INSERT INTO notifications (user_ID, type, message, is_read, created_at, updated_at)
+    VALUES
+        -- Notification for professional
+        (professional_user_ID, 'meeting',
+         CONCAT('The meeting has been paid and established from ', start_time, ' to ', end_time,
+                ' with the customer ', customer_name, '. Here is the URL: ', meetURL),
+         0, NOW(), NOW()),
+
+        -- Notification for customer
+        (customer_user_ID, 'meeting',
+         CONCAT('Thank you so much for your payment. The meeting has been created from ', start_time,
+                ' to ', end_time, ' with the professional ', professional_name,
+                '. Here is the meet URL: ', meetURL),
+         0, NOW(), NOW());
+
+    -- Step 6: Prepare JSON for the AddExpense procedure
+    SET expenseDetails = JSON_ARRAY(
+        JSON_OBJECT(
+            'reason_ID', reasonID,
+            'amount', paymentAmount,
+            'description', 'Benji Professional Meetup Payment'
+        )
+    );
+
+    -- Step 7: Call AddExpense procedure to add expenses
+    CALL AddExpense(customer_user_ID, expenseDetails);
+END //
+
+DELIMITER ;
+
 
 
 08.

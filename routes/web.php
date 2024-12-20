@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\common\GroupChatController;
 use App\Http\Controllers\PaymentController;
 
 /*
@@ -22,6 +23,9 @@ Route::get('/hello', function () {
 });
 
 Route::get('/payment/{encryptedDetails}', [PaymentController::class, 'checkout'])->name('payment.checkout');
+Route::post('/payment/process', [PaymentController::class, 'processPayment'])->name('payment.process');
+
+
 
 Route::prefix('payment')->group(function () {
     Route::get('/return', [PaymentController::class, 'paymentReturn'])->name('payment.return');
@@ -29,9 +33,8 @@ Route::prefix('payment')->group(function () {
     Route::post('/notify', [PaymentController::class, 'paymentNotify'])->name('payment.notify');
 });
 
+
+
 Route::get('/reset-password/{token}', function ($token) {
     return response()->json(['token' => $token]);
 })->name('password.reset');
-
-
-// Route to clear chache

@@ -433,18 +433,319 @@ DELIMITER ;
 
 
 08.
-Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE AddUserBotInfo(
+    IN userID BIGINT,
+    IN weeklyData JSON, -- JSON array for weekly chart data (day_name, expense)
+    IN monthlyData JSON, -- JSON array for monthly chart data (week_name, expense)
+    IN yearlyData JSON, -- JSON array for yearly chart data (month_name, expense)
+    IN forecast JSON, -- JSON object for forecast data
+    IN insights JSON, -- JSON object for user insights
+    IN threadID VARCHAR(255) -- Thread ID
+)
+BEGIN
+    DECLARE weeklyIndex INT DEFAULT 0;
+    DECLARE monthlyIndex INT DEFAULT 0;
+    DECLARE yearlyIndex INT DEFAULT 0;
+    DECLARE weeklyCount INT;
+    DECLARE monthlyCount INT;
+    DECLARE yearlyCount INT;
+    DECLARE userName VARCHAR(255);
+
+    -- Weekly Chart Data Variables
+    DECLARE weeklyDayName ENUM('Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7');
+    DECLARE weeklyExpense DECIMAL(10, 2);
+
+    -- Monthly Chart Data Variables
+    DECLARE monthlyWeekName ENUM('Week 0', 'Week 1', 'Week 2', 'Week 3', 'Week 4');
+    DECLARE monthlyExpense DECIMAL(10, 2);
+
+    -- Yearly Chart Data Variables
+    DECLARE yearlyMonthName ENUM('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+    DECLARE yearlyExpense DECIMAL(10, 2);
+
+    -- Fetch User Name
+    SELECT CONCAT(first_name, ' ', last_name) INTO userName
+    FROM users
+    WHERE user_ID = userID;
+
+    -- Insert Weekly Chart Data
+    SET weeklyCount = JSON_LENGTH(weeklyData);
+    WHILE weeklyIndex < weeklyCount DO
+        SET weeklyDayName = JSON_UNQUOTE(JSON_EXTRACT(weeklyData, CONCAT('$[', weeklyIndex, '].day_name')));
+        SET weeklyExpense = JSON_UNQUOTE(JSON_EXTRACT(weeklyData, CONCAT('$[', weeklyIndex, '].expense')));
+        INSERT INTO weekly_chart_data (user_ID, day_name, expense, created_at, updated_at)
+        VALUES (userID, weeklyDayName, weeklyExpense, NOW(), NOW());
+        SET weeklyIndex = weeklyIndex + 1;
+    END WHILE;
+
+    -- Insert Monthly Chart Data
+    SET monthlyCount = JSON_LENGTH(monthlyData);
+    WHILE monthlyIndex < monthlyCount DO
+        SET monthlyWeekName = JSON_UNQUOTE(JSON_EXTRACT(monthlyData, CONCAT('$[', monthlyIndex, '].week_name')));
+        SET monthlyExpense = JSON_UNQUOTE(JSON_EXTRACT(monthlyData, CONCAT('$[', monthlyIndex, '].expense')));
+        INSERT INTO monthly_chart_data (user_ID, week_name, expense, created_at, updated_at)
+        VALUES (userID, monthlyWeekName, monthlyExpense, NOW(), NOW());
+        SET monthlyIndex = monthlyIndex + 1;
+    END WHILE;
+
+    -- Insert Yearly Chart Data
+    SET yearlyCount = JSON_LENGTH(yearlyData);
+    WHILE yearlyIndex < yearlyCount DO
+        SET yearlyMonthName = JSON_UNQUOTE(JSON_EXTRACT(yearlyData, CONCAT('$[', yearlyIndex, '].month_name')));
+        SET yearlyExpense = JSON_UNQUOTE(JSON_EXTRACT(yearlyData, CONCAT('$[', yearlyIndex, '].expense')));
+        INSERT INTO yearly_chart_data (user_ID, month_name, expense, created_at, updated_at)
+        VALUES (userID, yearlyMonthName, yearlyExpense, NOW(), NOW());
+        SET yearlyIndex = yearlyIndex + 1;
+    END WHILE;
+
+    -- Insert Forecast Data
+    INSERT INTO forecast_data (user_ID, monthly_expense, total_expense, total_income, weekly_expense, yearly_expense, created_at, updated_at)
+    VALUES (
+        userID,
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.monthly_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.total_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.total_income')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.weekly_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.yearly_expense')),
+        NOW(),
+        NOW()
+    );
+
+    -- Insert User Insights
+    INSERT INTO user_insights (user_ID, forecasting_message, insights, saving_percentage, spending_percentage, created_at, updated_at)
+    VALUES (
+        userID,
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.forecasting_message')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.insights')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.saving_percentage')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.spending_percentage')),
+        NOW(),
+        NOW()
+    );
+
+    -- Insert Thread Data
+    INSERT INTO user_threads (user_ID, thread_id, created_at, updated_at)
+    VALUES (userID, threadID, NOW(), NOW());
+
+    -- Add Notification
+    INSERT INTO notifications (user_ID, type, message, is_read, created_at, updated_at)
+    VALUES (
+        userID,
+        'financeforecast',
+        CONCAT('Hey, ', userName, ', your new finance forecast information is available. Go ahead and check it out.'),
+        0,
+        NOW(),
+        NOW()
+    );
+
+END $$
+
+DELIMITER ;
+
 
 
 09.
-Procedure name :
+Procedure name : GetProfessionalsByType
+DELIMITER $$
+
+CREATE PROCEDURE GetProfessionalsByType(
+    IN professionalType VARCHAR(255) -- Pass the type to filter, or 'ALL' to fetch all records
+)
+BEGIN
+    IF professionalType = 'ALL' THEN
+        -- Fetch all professionals along with user details
+        SELECT
+            p.user_ID,
+            CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+            u.profile_image,
+            p.status,
+            p.type,
+            p.charge_per_Hr
+        FROM professionals p
+        INNER JOIN users u ON p.user_ID = u.user_ID;
+    ELSE
+        -- Fetch professionals of the specified type along with user details
+        SELECT
+            p.user_ID,
+            CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+            u.profile_image,
+            p.status,
+            p.type,
+            p.charge_per_Hr
+        FROM professionals p
+        INNER JOIN users u ON p.user_ID = u.user_ID
+        WHERE p.type = professionalType;
+    END IF;
+END $$
+
+DELIMITER ;
+
+
 
 
 10.
 Procedure name :
-
+DELIMITER $$
+CREATE PROCEDURE GetConsolidatedUserData(
+    IN userID BIGINT
+)
+BEGIN
+    SELECT
+        u.user_ID,
+        CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+        u.email,
+        u.type AS user_type,
+        wcd.day_name AS weekly_day_name,
+        wcd.expense AS weekly_expense,
+        mcd.week_name AS monthly_week_name,
+        mcd.expense AS chart_monthly_expense,
+        ycd.month_name AS yearly_month_name,
+        ycd.expense AS yearly_chart_expense,
+        fd.monthly_expense AS forecast_monthly_expense,
+        fd.total_expense,
+        fd.total_income,
+        fd.weekly_expense AS forecast_weekly_expense,
+        fd.yearly_expense AS forecast_yearly_expense,
+        ui.forecasting_message,
+        ui.insights,
+        ui.saving_percentage,
+        ui.spending_percentage,
+        ut.thread_id
+    FROM users u
+    LEFT JOIN weekly_chart_data wcd ON u.user_ID = wcd.user_ID
+    LEFT JOIN monthly_chart_data mcd ON u.user_ID = mcd.user_ID
+    LEFT JOIN yearly_chart_data ycd ON u.user_ID = ycd.user_ID
+    LEFT JOIN forecast_data fd ON u.user_ID = fd.user_ID
+    LEFT JOIN user_insights ui ON u.user_ID = ui.user_ID
+    LEFT JOIN user_threads ut ON u.user_ID = ut.user_ID
+    WHERE u.user_ID = userID;
+END $$
+DELIMITER ;
 
 11.
+DELIMITER $$
+
+CREATE PROCEDURE CleanAllTables()
+BEGIN
+    -- Disable foreign key checks to avoid constraints issues
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- Truncate all related tables
+    TRUNCATE TABLE weekly_chart_data;
+    TRUNCATE TABLE monthly_chart_data;
+    TRUNCATE TABLE yearly_chart_data;
+    TRUNCATE TABLE forecast_data;
+    TRUNCATE TABLE user_insights;
+    TRUNCATE TABLE user_threads;
+
+    -- Optionally truncate users table if needed (be cautious with this)
+    -- TRUNCATE TABLE users;
+
+    -- Re-enable foreign key checks
+    SET FOREIGN_KEY_CHECKS = 1;
+END $$
+
+DELIMITER ;
+
+
+
+12.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetUserMeetings(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        m.meeting_ID,
+        m.start_time_date,
+        m.end_time_date,
+        m.meet_url,
+        m.status AS meeting_status,
+        -- Professional Information
+        p.user_ID AS professional_user_ID,
+        CONCAT(professional_user.first_name, ' ', professional_user.last_name) AS professional_name,
+        professional_user.email AS professional_email,
+        professional_user.profile_image AS professional_profile_image,
+        -- Payment Information
+        pay.payment_ID,
+        pay.datetime AS payment_datetime,
+        pay.amount AS payment_amount,
+        pay.payhere_payment_ID AS external_payment_ID
+    FROM
+        meetings m
+    -- Join with professionals table to get professional user_ID
+    INNER JOIN professionals p ON m.user_ID_professional = p.user_ID
+    -- Join with users table to get professional user details
+    INNER JOIN users professional_user ON p.user_ID = professional_user.user_ID
+    -- Left Join with payments table to get payment details
+    LEFT JOIN payments pay ON m.meeting_ID = pay.meeting_ID
+    WHERE m.user_ID_customer = userID; -- Filter by customer ID
+END $$
+
+DELIMITER ;
+
+
+
+
+13.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetCategoryWiseExpense(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        c.category_ID,
+        c.category AS category_name,
+        SUM(el.amount) AS total_amount
+    FROM
+        expenses e
+    INNER JOIN expenses_list el ON e.expenses_ID = el.expenses_id
+    INNER JOIN reasons r ON el.reason_ID = r.reason_ID
+    INNER JOIN categories c ON r.category_ID = c.category_ID
+    WHERE
+        e.user_ID = userID
+        AND MONTH(e.created_at) = MONTH(CURDATE()) -- Current month
+        AND YEAR(e.created_at) = YEAR(CURDATE())  -- Current year
+    GROUP BY
+        c.category_ID, c.category;
+END $$
+
+DELIMITER ;
+
+
+14.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetExpenseAmountsAndDates(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        el.amount,
+        e.created_at AS spending_date
+    FROM
+        expenses e
+    INNER JOIN expenses_list el ON e.expenses_ID = el.expenses_id
+    WHERE
+        e.user_ID = userID
+        AND MONTH(e.created_at) = MONTH(CURDATE()) -- Current month
+        AND YEAR(e.created_at) = YEAR(CURDATE());  -- Current year
+END $$
+
+DELIMITER ;
+
+
+15.
+Procedure name :
+
+16.
 Procedure name :
 
 
@@ -475,3 +776,72 @@ LEFT JOIN expenses ON expenses.user_ID = users.user_ID
 LEFT JOIN expenses_list ON expenses_list.expenses_id = expenses.expenses_ID
 LEFT JOIN reasons ON reasons.reason_ID = expenses_list.reason_ID
 LEFT JOIN categories ON categories.category_ID = reasons.category_ID;
+
+
+02.
+CREATE OR REPLACE VIEW consolidated_user_data AS
+SELECT
+    u.user_ID,
+    CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+    u.email,
+    u.type AS user_type,
+    -- Weekly Chart Data
+    wcd.day_name AS weekly_day_name,
+    wcd.expense AS weekly_expense,
+    -- Monthly Chart Data
+    mcd.week_name AS monthly_week_name,
+    mcd.expense AS chart_monthly_expense, -- Alias to avoid duplicate name
+    -- Yearly Chart Data
+    ycd.month_name AS yearly_month_name,
+    ycd.expense AS yearly_chart_expense, -- Alias to avoid duplicate name
+    -- Forecast Data
+    fd.monthly_expense AS forecast_monthly_expense, -- Alias to avoid duplicate name
+    fd.total_expense,
+    fd.total_income,
+    fd.weekly_expense AS forecast_weekly_expense,
+    fd.yearly_expense AS forecast_yearly_expense,
+    -- User Insights
+    ui.forecasting_message,
+    ui.insights,
+    ui.saving_percentage,
+    ui.spending_percentage,
+    -- User Threads
+    ut.thread_id
+FROM
+    users u
+LEFT JOIN weekly_chart_data wcd ON u.user_ID = wcd.user_ID
+LEFT JOIN monthly_chart_data mcd ON u.user_ID = mcd.user_ID
+LEFT JOIN yearly_chart_data ycd ON u.user_ID = ycd.user_ID
+LEFT JOIN forecast_data fd ON u.user_ID = fd.user_ID
+LEFT JOIN user_insights ui ON u.user_ID = ui.user_ID
+LEFT JOIN user_threads ut ON u.user_ID = ut.user_ID;
+
+
+03.
+CREATE OR REPLACE VIEW user_meetings_view AS
+SELECT
+    m.meeting_ID,
+    m.start_time_date,
+    m.end_time_date,
+    m.meet_url,
+    m.status AS meeting_status,
+    -- Professional Information
+    p.user_ID AS professional_user_ID,
+    CONCAT(professional_user.first_name, ' ', professional_user.last_name) AS professional_name,
+    professional_user.email AS professional_email,
+    professional_user.profile_image AS professional_profile_image,
+    -- Payment Information
+    pay.payment_ID,
+    pay.datetime AS payment_datetime,
+    pay.amount AS payment_amount,
+    pay.payhere_payment_ID AS external_payment_ID,
+    -- Customer Information
+    m.user_ID_customer
+FROM
+    meetings m
+-- Join with professionals table to get professional user_ID
+INNER JOIN professionals p ON m.user_ID_professional = p.user_ID
+-- Join with users table to get professional user details
+INNER JOIN users professional_user ON p.user_ID = professional_user.user_ID
+-- Left Join with payments table to get payment details
+LEFT JOIN payments pay ON m.meeting_ID = pay.meeting_ID;

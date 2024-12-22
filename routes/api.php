@@ -1,12 +1,14 @@
 <?php
 
+use App\Http\Controllers\common\GetAllProfessinoalsByCategory;
 use App\Http\Controllers\Professionals\ProfileController;
-use App\Http\Controllers\UserCommunicationController;
 //use App\Http\Controllers\common\GroupChatController;
+use App\Http\Controllers\UserCommunicationController;
 use App\Http\Controllers\IncomeManagementController;
 use App\Http\Controllers\common\ExpensessController;
 use App\Http\Controllers\admin\CategorieController;
 use App\Http\Controllers\Customer\BookProfeshanal;
+use App\Http\Controllers\Customer\BotResponse;
 use App\Http\Controllers\admin\ReasonController;
 use App\Http\Controllers\admin\BotController;
 use App\Http\Controllers\PaymentController;
@@ -90,6 +92,8 @@ Route::prefix('user-management-service')->group(function () {
 //Service 02. Expensess handling
 Route::prefix('Expensess-Management-service')->group(function () {
 
+    Route::get('/reasons/all', [ExpensessController::class, 'getAllReasons']);
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/add', [ExpensessController::class, 'addExpense']);
         // Change this to PUT and add the {expenseID} parameter
@@ -112,15 +116,23 @@ Route::prefix('Expensess-Management-service')->group(function () {
 // Service 03. AI Bot connection
 Route::prefix('Bot-service')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/expenses', [BotController::class, 'getAllExpenses']);
+        Route::post('/expenses', [BotController::class, 'getAllExpenses']);
     });
 });
+
+// Route::prefix('customer/bot')->middleware('auth:sanctum')->group(function () {
+//     Route::get('/consolidated-data', [BotResponse::class, 'getConsolidatedUserData']);
+// });
 
 
 // Service 04. Meetings handling
 
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::post('/book-meeting', [BookProfeshanal::class, 'bookMeeting']);
+    Route::get('/professionals/{type?}', [GetAllProfessinoalsByCategory::class, 'getAllProfessionalsByType']);
+    Route::get('/consolidated-data', [BotResponse::class, 'getConsolidatedUserData']);
+    Route::get('/current-month-data', [BotResponse::class, 'getCurrentMonthExpenses']);
+
 });
 
 

@@ -177,14 +177,23 @@ class ExpensessController extends Controller
             ->where('user_ID', $userID) // Filter by the authenticated user's ID
             ->get(['expenses_ID', 'created_at', 'updated_at']); // Exclude user_ID here
 
-        // Step 3: Retrieve the associated expense list items for each expense
+        // Step 3: Retrieve the associated expense list items for each expense, including reasons
         $expensesWithDetails = [];
 
         foreach ($expenses as $expense) {
-            // Fetch the expense list items related to this expense
+            // Fetch the expense list items related to this expense with reason details
             $expenseItems = DB::table('expenses_list')
-                ->where('expenses_id', $expense->expenses_ID) // Link to the expense ID
-                ->get(['expenseslist_ID', 'reason_ID', 'amount', 'description', 'created_at', 'updated_at']); // Specify the fields to retrieve
+                ->join('reasons', 'expenses_list.reason_ID', '=', 'reasons.reason_ID') // Join with reasons table
+                ->where('expenses_list.expenses_id', $expense->expenses_ID) // Link to the expense ID
+                ->get([
+                    'expenses_list.expenseslist_ID',
+                    'expenses_list.reason_ID',
+                    'reasons.reason', // Get reason name from reasons table
+                    'expenses_list.amount',
+                    'expenses_list.description',
+                    'expenses_list.created_at',
+                    'expenses_list.updated_at'
+                ]);
 
             // Add expense and its list items to the result array
             $expensesWithDetails[] = [
@@ -196,6 +205,7 @@ class ExpensessController extends Controller
         // Step 4: Return the combined result as a response
         return response()->json(['data' => $expensesWithDetails], 200);
     }
+
 
 
     /**
@@ -219,6 +229,32 @@ class ExpensessController extends Controller
             'user_ID' => $userID,
             'expenses' => $expensesData
         ], 200);
+    }
+
+
+    public function getAllReasons()
+    {
+        try {
+            // Fetch all reasons from the reasons table
+            $reasons = DB::table('reasons')->select('reason', 'reason_ID')->get();
+
+            if ($reasons->isEmpty()) {
+                return response()->json([
+                    'message' => 'No reasons found.',
+                    'data' => [],
+                ], 404);
+            }
+
+            return response()->json([
+                'message' => 'Reasons retrieved successfully.',
+                'data' => $reasons,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'An error occurred while fetching reasons.',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
 

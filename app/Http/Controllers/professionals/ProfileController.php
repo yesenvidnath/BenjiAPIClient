@@ -288,4 +288,97 @@ class ProfileController extends Controller
             ], 500);
         }
     }
+
+
+    // Function to call the GetAllProfessionals stored procedure
+    public function getAllProfessionals()
+    {
+        // Get authenticated user ID
+        $userID = $this->getAuthenticatedUserId();
+        if (!$userID) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        try {
+            // Call the stored procedure
+            $results = DB::select('CALL GetAllProfessionals()');
+
+            // Structure the data
+            $professionals = [];
+            foreach ($results as $row) {
+                $userID = $row->user_ID;
+
+                // Initialize professional if not already set
+                if (!isset($professionals[$userID])) {
+                    $professionals[$userID] = [
+                        'user_id' => $userID,
+                        'full_name' => $row->full_name,
+                        'address' => $row->address,
+                        'type' => $row->type,
+                        'dob' => $row->DOB,
+                        'phone_number' => $row->phone_number,
+                        'email' => $row->email,
+                        'profile_image' => $row->profile_image,
+                        'bank_choice' => $row->bank_choice,
+                        'status' => $row->status,
+                        'professional_type' => $row->professional_type,
+                        'charge_per_hour' => $row->charge_per_Hr,
+                        'certificates' => [],
+                    ];
+                }
+
+                // Add certificate information if available
+                if ($row->certificate_ID) {
+                    $professionals[$userID]['certificates'][] = [
+                        'certificate_id' => $row->certificate_ID,
+                        'certificate_name' => $row->certificate_name,
+                        'certificate_date' => $row->certificate_date,
+                        'certificate_image' => $row->certificate_image,
+                    ];
+                }
+            }
+
+            // Reset array keys for a clean JSON response
+            $structuredData = array_values($professionals);
+
+            return response()->json(['data' => $structuredData], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error fetching professionals', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateProfessionalDetails(Request $request, $professionalId)
+    {
+        // Get authenticated user ID
+        $userID = $this->getAuthenticatedUserId();
+        if (!$userID) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Validate the input
+        $validatedData = $request->validate([
+            'status' => 'required|in:pending,active,banned,suspended',
+            'charge_per_hr' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            // Update the professional's status and charge per hour in the database
+            $affectedRows = DB::table('professionals')
+                ->where('user_ID', $professionalId)
+                ->update([
+                    'status' => $validatedData['status'],
+                    'charge_per_Hr' => $validatedData['charge_per_hr'],
+                ]);
+
+            if ($affectedRows === 0) {
+                return response()->json(['message' => 'Professional not found or no changes made'], 404);
+            }
+
+            return response()->json(['message' => 'Details updated successfully'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error updating details', 'error' => $e->getMessage()], 500);
+        }
+    }
+
 }

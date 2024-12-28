@@ -905,6 +905,43 @@ END //
 
 DELIMITER ;
 
+19.
+procedure name:
+DELIMITER //
+
+CREATE PROCEDURE GetAllProfessionals()
+BEGIN
+    SELECT
+        u.user_ID,
+        CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+        u.address,
+        u.type,
+        u.DOB,
+        u.phone_number,
+        u.email,
+        u.profile_image,
+        u.bank_choice,
+        p.status,
+        p.type AS professional_type,
+        p.charge_per_Hr,
+        c.certificate_ID,
+        c.certificate_name,
+        c.certificate_date,
+        c.certificate_image
+    FROM
+        users u
+    INNER JOIN
+        professionals p ON u.user_ID = p.user_ID
+    LEFT JOIN
+        certificates c ON p.user_ID = c.professional_ID
+    WHERE
+        u.type = 'Professional';
+END //
+
+DELIMITER ;
+
+
+
 
 Viwes
 

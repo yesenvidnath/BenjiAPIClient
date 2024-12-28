@@ -178,5 +178,23 @@ Route::prefix('Admin-Management-service')->group(function () {
             Route::put('{id}', [ReasonController::class, 'update']);     // Update an existing reason
             Route::delete('{id}', [ReasonController::class, 'destroy']); // Delete a reason
         });
+
+
+
+        Route::prefix('professionals')->group(function () {
+            Route::get('/getall', [ProfileController::class, 'getAllProfessionals']);
+            Route::put('/{id}/status', [ProfileController::class, 'updateProfessionalDetails']);
+        });
     });
 });
+
+// Donwload the profeesonal certifications
+Route::get('/storage/{path}', function($path) {
+    $headers = [
+        'Access-Control-Allow-Origin' => 'http://admin.benji.com',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Access-Control-Allow-Headers' => 'Authorization'
+    ];
+
+    return response()->file(storage_path('app/public/' . $path), $headers);
+})->where('path', '.*');

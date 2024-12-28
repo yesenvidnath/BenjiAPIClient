@@ -9,13 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('meetings', function (Blueprint $table) {
-            $table->id();
+            $table->id('meeting_ID');
+            $table->dateTime('start_time_date');
+            $table->dateTime('end_time_date');
+            $table->foreignId('user_ID_customer')->constrained('users', 'user_ID'); // Reference to users.user_ID
+            $table->foreignId('user_ID_professional')->constrained('professionals', 'user_ID'); // Reference to professionals.user_ID
+            $table->string('meet_url')->nullable();
+            $table->enum('status', ['canceled', 'rescheduled', 'completed', 'pending', 'incompleatepayment']);
             $table->timestamps();
         });
     }
+
+
 
     /**
      * Reverse the migrations.

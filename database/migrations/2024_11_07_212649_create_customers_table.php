@@ -9,10 +9,11 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('customers', function (Blueprint $table) {
-            $table->id();
+            $table->foreignId('user_ID')->primary()->constrained('users', 'user_ID');
+            $table->enum('status', ['pending', 'active', 'banned', 'suspended', 'converted']);
             $table->timestamps();
         });
     }

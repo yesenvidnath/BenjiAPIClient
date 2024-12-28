@@ -1,0 +1,1003 @@
+Stored procedures
+
+01.
+Procedure name : CreateUserAccount
+
+DELIMITER $$
+
+CREATE PROCEDURE CreateUserAccount(
+    IN userType ENUM('Customer','Professional','Admin'),
+    IN userFirstName VARCHAR(255),
+    IN userLastName VARCHAR(255),
+    IN userAddress VARCHAR(255),
+    IN userDOB DATE,
+    IN userPhone VARCHAR(20),
+    IN userEmail VARCHAR(100),
+    IN userPassword VARCHAR(255),
+    IN userProfileImage VARCHAR(255),
+    IN userBankChoice VARCHAR(255),
+    IN certificateID VARCHAR(255),
+    IN adminDescription TEXT,
+    IN incomeSources JSON
+)
+BEGIN
+    DECLARE newUserID BIGINT;
+    DECLARE sourceIndex INT DEFAULT 0;
+    DECLARE sourceCount INT;
+    DECLARE sourceName VARCHAR(255);
+    DECLARE sourceAmount DECIMAL(10,2);
+    DECLARE sourceFrequency ENUM('monthly', 'annual');
+    DECLARE sourceDescription TEXT;
+
+    -- Insert into Users table and retrieve the last inserted ID
+    INSERT INTO users (first_name, last_name, address, type, DOB, phone_number, email, password, profile_image, bank_choice, created_at, updated_at)
+    VALUES (userFirstName, userLastName, userAddress, userType, userDOB, userPhone, userEmail, userPassword, userProfileImage, userBankChoice, NOW(), NOW());
+
+    SET newUserID = LAST_INSERT_ID();
+
+    -- Insert into appropriate table based on user type
+    IF userType = 'Professional' THEN
+        INSERT INTO professionals (user_ID, certificate_ID, status, created_at, updated_at)
+        VALUES (newUserID, certificateID, 'pending', NOW(), NOW());
+    ELSEIF userType = 'Customer' THEN
+        INSERT INTO customers (user_ID, status, created_at, updated_at)
+        VALUES (newUserID, 'active', NOW(), NOW());
+    ELSEIF userType = 'Admin' THEN
+        INSERT INTO admins (user_ID, description, created_at, updated_at)
+        VALUES (newUserID, adminDescription, NOW(), NOW());
+    END IF;
+
+    -- Insert income sources if the user is a Customer or Professional
+    IF userType IN ('Customer', 'Professional') THEN
+        -- Get the number of income sources in the JSON array
+        SET sourceCount = JSON_LENGTH(incomeSources);
+
+        -- Loop through each income source
+        WHILE sourceIndex < sourceCount DO
+            -- Extract details of the current income source
+            SET sourceName = JSON_UNQUOTE(JSON_EXTRACT(incomeSources, CONCAT('$[', sourceIndex, '].source_name')));
+            SET sourceAmount = JSON_UNQUOTE(JSON_EXTRACT(incomeSources, CONCAT('$[', sourceIndex, '].amount')));
+            SET sourceFrequency = JSON_UNQUOTE(JSON_EXTRACT(incomeSources, CONCAT('$[', sourceIndex, '].frequency')));
+            SET sourceDescription = JSON_UNQUOTE(JSON_EXTRACT(incomeSources, CONCAT('$[', sourceIndex, '].description')));
+
+            -- Insert the income source into the income_sources table
+            INSERT INTO income_sources (user_ID, source_name, amount, frequency, description, created_at, updated_at)
+            VALUES (newUserID, sourceName, sourceAmount, sourceFrequency, sourceDescription, NOW(), NOW());
+
+            -- Move to the next income source
+            SET sourceIndex = sourceIndex + 1;
+        END WHILE;
+    END IF;
+
+END $$
+
+DELIMITER ;
+
+
+
+02.
+Procedure name : ConvertCustomerToProfessional
+
+DELIMITER //
+
+CREATE PROCEDURE ConvertCustomerToProfessional(
+    IN userID BIGINT,                          -- User ID of the customer
+    IN certificateDetails JSON,                 -- JSON array of certificates
+    IN professionalType ENUM('Accountant', 'Financial Advisor', 'Stock Broker', 'Banker', 'Insurance Agent', 'Investment Specialist', 'Tax Consultant', 'Real Estate Agent', 'Loan Officer', 'Wealth Manager', 'Mortgage Advisor', 'Retirement Planner', 'Business Consultant', 'Other') -- Type of professional
+)
+BEGIN
+    DECLARE professionalID BIGINT;
+    DECLARE certificateIndex INT DEFAULT 0;
+    DECLARE certificateCount INT;
+    DECLARE certificateID VARCHAR(255);
+    DECLARE certificateName VARCHAR(255);
+    DECLARE certificateDate DATE;
+    DECLARE certificateImage VARCHAR(255);
+
+    -- Check if the user exists in the 'customers' table and is active
+    IF EXISTS (SELECT 1 FROM customers WHERE user_ID = userID AND status = 'active') THEN
+
+        -- Step 1: Create the Professional record with default status 'pending' and the specified type
+        INSERT INTO professionals (user_ID, status, type, created_at, updated_at)
+        VALUES (userID, 'pending', professionalType, NOW(), NOW());
+
+        SET professionalID = userID;  -- Since userID is used as the professional_ID in professionals table
+
+        -- Step 2: Insert multiple certificates from JSON
+        SET certificateCount = JSON_LENGTH(certificateDetails);
+
+        -- Loop through each certificate in the JSON array
+        WHILE certificateIndex < certificateCount DO
+            -- Extract the certificate details from the JSON array
+            SET certificateID = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateID')));
+            SET certificateName = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateName')));
+            SET certificateDate = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateDate')));
+            SET certificateImage = JSON_UNQUOTE(JSON_EXTRACT(certificateDetails, CONCAT('$[', certificateIndex, '].certificateImage')));
+
+            -- Insert the certificate into the certificates table
+            INSERT INTO certificates (professional_ID, certificate_ID, certificate_name, certificate_date, certificate_image, created_at, updated_at)
+            VALUES (professionalID, certificateID, certificateName, certificateDate, certificateImage, NOW(), NOW());
+
+            -- Move to the next certificate in the array
+            SET certificateIndex = certificateIndex + 1;
+        END WHILE;
+
+        -- Step 3: Update the customer's status to 'converted'
+        UPDATE customers
+        SET status = 'converted', updated_at = NOW()
+        WHERE user_ID = userID;
+
+    ELSE
+        -- If the user is not found or not an active customer, raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User is not an active customer';
+    END IF;
+
+END //
+
+DELIMITER ;
+
+03.
+Procedure name : AddExpense
+DELIMITER //
+
+CREATE PROCEDURE AddExpense(
+    IN userID BIGINT,                           -- User ID of the person adding the expense
+    IN expensesDetails JSON                     -- JSON array with details for expenses (reason_id, amount, description)
+)
+BEGIN
+    DECLARE expensesID BIGINT;
+    DECLARE expenseIndex INT DEFAULT 0;
+    DECLARE expensesCount INT;
+    DECLARE reasonID INT;
+    DECLARE amount DECIMAL(10,2);
+    DECLARE description TEXT;
+    DECLARE reasonName VARCHAR(255);
+    DECLARE categoryID INT;
+
+    -- Step 1: Check if the user exists in either 'customers' or 'professionals' table
+    IF EXISTS (SELECT 1 FROM professionals WHERE user_ID = userID) OR EXISTS (SELECT 1 FROM customers WHERE user_ID = userID) THEN
+
+        -- Step 2: Insert into the expenses table (without comment)
+        INSERT INTO expenses (user_ID, created_at, updated_at)
+        VALUES (userID, NOW(), NOW());
+
+        -- Get the expenses ID of the newly inserted expense
+        SET expensesID = LAST_INSERT_ID();
+
+        -- Step 3: Process the expense details (insert into expenses_list)
+        SET expensesCount = JSON_LENGTH(expensesDetails);
+
+        -- Loop through the JSON array of expense details
+        WHILE expenseIndex < expensesCount DO
+            -- Extract each expense detail from the JSON array
+            SET reasonID = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].reason_ID')));
+            SET amount = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].amount')));
+            SET description = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].description')));
+
+            -- Insert into the expenses_list table
+            INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at, expenses_id)
+            VALUES (reasonID, amount, description, NOW(), NOW(), expensesID);
+
+            -- Step 4: Retrieve the reason name and category based on the reason_ID
+            SELECT reason, category_ID INTO reasonName, categoryID
+            FROM reasons
+            WHERE reason_ID = reasonID;
+
+            -- Print or log reason and category (if needed for debugging purposes)
+            -- SELECT reasonName, categoryID;
+
+            -- Move to the next expense detail in the JSON array
+            SET expenseIndex = expenseIndex + 1;
+        END WHILE;
+
+        -- Return success message
+        SELECT 'Expense added successfully' AS message;
+
+    ELSE
+        -- If the user does not exist in 'customers' or 'professionals', raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found in customers or professionals table';
+    END IF;
+
+END //
+
+DELIMITER ;
+
+
+04.
+Procedure name : UpdateExpense
+
+DELIMITER //
+
+CREATE PROCEDURE UpdateExpense(
+    IN expenseID BIGINT,
+    IN userID BIGINT,
+    IN expensesDetails JSON
+)
+BEGIN
+    DECLARE expenseIndex INT DEFAULT 0;
+    DECLARE expensesCount INT;
+    DECLARE reasonID INT;
+    DECLARE amount DECIMAL(10,2);
+    DECLARE description TEXT;
+
+    -- Step 1: Check if the expense exists and belongs to the user
+    IF EXISTS (SELECT 1 FROM expenses WHERE expenses_ID = expenseID AND user_ID = userID) THEN
+
+        -- Step 2: Update the expense record (optional, if needed)
+        UPDATE expenses
+        SET updated_at = NOW()
+        WHERE expenses_ID = expenseID;
+
+        -- Step 3: Delete old entries in expenses_list
+        DELETE FROM expenses_list WHERE expenses_id = expenseID;
+
+        -- Step 4: Process the expense details (insert into expenses_list)
+        SET expensesCount = JSON_LENGTH(expensesDetails);
+
+        -- Loop through the JSON array of expense details
+        WHILE expenseIndex < expensesCount DO
+            -- Extract each expense detail from the JSON array
+            SET reasonID = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].reason_ID')));
+            SET amount = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].amount')));
+            SET description = JSON_UNQUOTE(JSON_EXTRACT(expensesDetails, CONCAT('$[', expenseIndex, '].description')));
+
+            -- Insert the updated expense details into expenses_list
+            INSERT INTO expenses_list (reason_ID, amount, description, created_at, updated_at, expenses_id)
+            VALUES (reasonID, amount, description, NOW(), NOW(), expenseID);
+
+            -- Move to the next expense detail in the JSON array
+            SET expenseIndex = expenseIndex + 1;
+        END WHILE;
+
+        -- Return success message
+        SELECT 'Expense updated successfully' AS message;
+
+    ELSE
+        -- If the expense does not exist or the user does not own it, raise an error
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Expense not found or user not authorized';
+    END IF;
+
+END //
+
+DELIMITER ;
+
+
+05.
+Procedure name : GetUserExpensesInfo
+
+DELIMITER //
+
+CREATE PROCEDURE GetUserExpensesInfo(
+    IN userID BIGINT                              -- User ID to fetch expenses for
+)
+BEGIN
+    SELECT
+        expenses.expenses_ID,
+        expenses.user_ID,
+        expenses.created_at AS expense_created_at,
+        expenses.updated_at AS expense_updated_at,
+        expenses_list.expenseslist_ID,
+        expenses_list.amount,
+        expenses_list.description,
+        reasons.reason,
+        reasons.reason_ID,
+        categories.category AS category_name,
+        categories.category_ID
+    FROM expenses
+    INNER JOIN expenses_list ON expenses.expenses_ID = expenses_list.expenses_id
+    INNER JOIN reasons ON expenses_list.reason_ID = reasons.reason_ID
+    INNER JOIN categories ON reasons.category_ID = categories.category_ID
+    WHERE expenses.user_ID = userID;
+END //
+
+DELIMITER ;
+
+
+06.
+Procedure name : CreateMeeting
+DELIMITER //
+
+CREATE PROCEDURE CreateMeeting(
+    IN customer_email VARCHAR(100),           -- Customer's email (for user lookup)
+    IN professional_email VARCHAR(100),       -- Professional's email (for user lookup)
+    IN start_time DATETIME,                   -- Start date and time of the meeting
+    OUT meeting_url VARCHAR(255)              -- Google Meet URL for the meeting
+)
+BEGIN
+    DECLARE customer_user_ID BIGINT;
+    DECLARE professional_user_ID BIGINT;
+    DECLARE professional_name VARCHAR(255);
+    DECLARE customer_name VARCHAR(255);
+    DECLARE professional_email VARCHAR(100);
+    DECLARE customer_email VARCHAR(100);
+    DECLARE charge_per_hr DECIMAL(10,2);
+    DECLARE meetingID BIGINT;
+    DECLARE end_time DATETIME;
+
+    -- Step 1: Get the user ID for the customer and professional
+    -- Get customer details: user_ID, first_name + last_name, email
+    SELECT u.user_ID, CONCAT(u.first_name, ' ', u.last_name), u.email
+    INTO customer_user_ID, customer_name, customer_email
+    FROM users u
+    WHERE u.email = customer_email
+    AND EXISTS (SELECT 1 FROM customers c WHERE c.user_ID = u.user_ID AND c.status != 'Active');
+
+    -- Get professional details: user_ID, first_name + last_name, email, charge_per_Hr
+    SELECT p.user_ID, CONCAT(u.first_name, ' ', u.last_name), u.email, p.charge_per_Hr
+    INTO professional_user_ID, professional_name, professional_email, charge_per_hr
+    FROM users u
+    JOIN professionals p ON p.user_ID = u.user_ID
+    WHERE u.email = professional_email
+    AND p.status != 'Active';
+
+    -- Step 2: Insert into the meetings table
+    SET end_time = DATE_ADD(start_time, INTERVAL 1 HOUR); -- Calculate end time as 1 hour later
+
+    INSERT INTO meetings (start_time_date, end_time_date, user_ID_customer, user_ID_professional, meet_url, status, created_at, updated_at)
+    VALUES (start_time, end_time, customer_user_ID, professional_user_ID, NULL, 'inCompleate payment', NOW(), NOW());
+
+    SET meetingID = LAST_INSERT_ID();  -- Get the meeting ID of the newly created record
+
+    -- Step 3: Insert into the payment table
+    INSERT INTO payments (datetime, amount, user_ID, meeting_ID, created_at, updated_at)
+    VALUES (NOW(), charge_per_hr, customer_user_ID, meetingID, NOW(), NOW());
+
+    -- Step 4: Update the meetings table with the Google Meet URL and change status to "Pending"
+    -- Assuming you get the Google Meet URL via an external API and pass it to this procedure
+    UPDATE meetings
+    SET meet_url = meeting_url, status = 'Pending'
+    WHERE meeting_ID = meetingID;
+
+    -- Step 5: Send notifications to both customer and professional
+    -- For the customer:
+    INSERT INTO notifications (user_ID, type, message, created_at, updated_at)
+    VALUES (customer_user_ID, 'meetings', CONCAT('You have a meeting with ', professional_name, ' at ', start_time, ' till ', end_time, '. Your meeting URL is ', meeting_url), NOW(), NOW());
+
+    -- For the professional:
+    INSERT INTO notifications (user_ID, type, message, created_at, updated_at)
+    VALUES (professional_user_ID, 'meetings', CONCAT('You have a meeting with ', customer_name, ' at ', start_time, ' till ', end_time, '. Your meeting URL is ', meeting_url), NOW(), NOW());
+
+    -- Return success message
+    SELECT 'Meeting created successfully' AS message;
+END //
+
+DELIMITER ;
+
+
+07.
+DELIMITER //
+
+CREATE PROCEDURE FinalizeMeetingPayment(
+    IN meetingID BIGINT,             -- Meeting ID to be updated
+    IN meetURL VARCHAR(255),         -- Zoom meeting link
+    IN paymentAmount DECIMAL(10, 2)  -- Payment amount
+)
+BEGIN
+    DECLARE customer_user_ID BIGINT;
+    DECLARE professional_user_ID BIGINT;
+    DECLARE start_time DATETIME;
+    DECLARE end_time DATETIME;
+    DECLARE customer_name VARCHAR(255);
+    DECLARE professional_name VARCHAR(255);
+    DECLARE reasonID INT;
+    DECLARE expenseDetails JSON;
+
+    -- Step 1: Retrieve meeting details
+    SELECT user_ID_customer, user_ID_professional, start_time_date, end_time_date
+    INTO customer_user_ID, professional_user_ID, start_time, end_time
+    FROM meetings
+    WHERE meeting_ID = meetingID;
+
+    -- Step 2: Retrieve names from the users table
+    SELECT CONCAT(first_name, ' ', last_name)
+    INTO customer_name
+    FROM users
+    WHERE user_ID = customer_user_ID;
+
+    SELECT CONCAT(first_name, ' ', last_name)
+    INTO professional_name
+    FROM users
+    WHERE user_ID = professional_user_ID;
+
+    -- Step 3: Fetch the reason ID for "Benji Professional Meetup"
+    SELECT reason_ID
+    INTO reasonID
+    FROM reasons
+    WHERE reason = 'Benji Professional Meetup';
+
+    -- Ensure the reason ID is not NULL
+    IF reasonID IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Reason "Benji Professional Meetup" does not exist in the reasons table.';
+    END IF;
+
+    -- Step 4: Update the meetings table
+    UPDATE meetings
+    SET meet_url = meetURL, status = 'pending', updated_at = NOW()
+    WHERE meeting_ID = meetingID;
+
+    -- Step 5: Create notifications for both the professional and customer
+    INSERT INTO notifications (user_ID, type, message, is_read, created_at, updated_at)
+    VALUES
+        -- Notification for professional
+        (professional_user_ID, 'meeting',
+         CONCAT('The meeting has been paid and established from ', start_time, ' to ', end_time,
+                ' with the customer ', customer_name, '. Here is the URL: ', meetURL),
+         0, NOW(), NOW()),
+
+        -- Notification for customer
+        (customer_user_ID, 'meeting',
+         CONCAT('Thank you so much for your payment. The meeting has been created from ', start_time,
+                ' to ', end_time, ' with the professional ', professional_name,
+                '. Here is the meet URL: ', meetURL),
+         0, NOW(), NOW());
+
+    -- Step 6: Insert the payment record into the payments table
+    INSERT INTO payments (datetime, amount, user_ID, meeting_ID, created_at, updated_at)
+    VALUES (NOW(), paymentAmount, customer_user_ID, meetingID, NOW(), NOW());
+
+    -- Step 7: Prepare JSON for the AddExpense procedure
+    SET expenseDetails = JSON_ARRAY(
+        JSON_OBJECT(
+            'reason_ID', reasonID,
+            'amount', paymentAmount,
+            'description', 'Benji Professional Meetup Payment'
+        )
+    );
+
+    -- Step 8: Call AddExpense procedure to add expenses
+    CALL AddExpense(customer_user_ID, expenseDetails);
+END //
+
+DELIMITER ;
+
+
+
+
+08.
+DELIMITER $$
+
+CREATE PROCEDURE AddUserBotInfo(
+    IN userID BIGINT,
+    IN weeklyData JSON, -- JSON array for weekly chart data (day_name, expense)
+    IN monthlyData JSON, -- JSON array for monthly chart data (week_name, expense)
+    IN yearlyData JSON, -- JSON array for yearly chart data (month_name, expense)
+    IN forecast JSON, -- JSON object for forecast data
+    IN insights JSON, -- JSON object for user insights
+    IN threadID VARCHAR(255) -- Thread ID
+)
+BEGIN
+    DECLARE weeklyIndex INT DEFAULT 0;
+    DECLARE monthlyIndex INT DEFAULT 0;
+    DECLARE yearlyIndex INT DEFAULT 0;
+    DECLARE weeklyCount INT;
+    DECLARE monthlyCount INT;
+    DECLARE yearlyCount INT;
+    DECLARE userName VARCHAR(255);
+
+    -- Weekly Chart Data Variables
+    DECLARE weeklyDayName ENUM('Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7');
+    DECLARE weeklyExpense DECIMAL(10, 2);
+
+    -- Monthly Chart Data Variables
+    DECLARE monthlyWeekName ENUM('Week 0', 'Week 1', 'Week 2', 'Week 3', 'Week 4');
+    DECLARE monthlyExpense DECIMAL(10, 2);
+
+    -- Yearly Chart Data Variables
+    DECLARE yearlyMonthName ENUM('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+    DECLARE yearlyExpense DECIMAL(10, 2);
+
+    -- Fetch User Name
+    SELECT CONCAT(first_name, ' ', last_name) INTO userName
+    FROM users
+    WHERE user_ID = userID;
+
+    -- Insert Weekly Chart Data
+    SET weeklyCount = JSON_LENGTH(weeklyData);
+    WHILE weeklyIndex < weeklyCount DO
+        SET weeklyDayName = JSON_UNQUOTE(JSON_EXTRACT(weeklyData, CONCAT('$[', weeklyIndex, '].day_name')));
+        SET weeklyExpense = JSON_UNQUOTE(JSON_EXTRACT(weeklyData, CONCAT('$[', weeklyIndex, '].expense')));
+        INSERT INTO weekly_chart_data (user_ID, day_name, expense, created_at, updated_at)
+        VALUES (userID, weeklyDayName, weeklyExpense, NOW(), NOW());
+        SET weeklyIndex = weeklyIndex + 1;
+    END WHILE;
+
+    -- Insert Monthly Chart Data
+    SET monthlyCount = JSON_LENGTH(monthlyData);
+    WHILE monthlyIndex < monthlyCount DO
+        SET monthlyWeekName = JSON_UNQUOTE(JSON_EXTRACT(monthlyData, CONCAT('$[', monthlyIndex, '].week_name')));
+        SET monthlyExpense = JSON_UNQUOTE(JSON_EXTRACT(monthlyData, CONCAT('$[', monthlyIndex, '].expense')));
+        INSERT INTO monthly_chart_data (user_ID, week_name, expense, created_at, updated_at)
+        VALUES (userID, monthlyWeekName, monthlyExpense, NOW(), NOW());
+        SET monthlyIndex = monthlyIndex + 1;
+    END WHILE;
+
+    -- Insert Yearly Chart Data
+    SET yearlyCount = JSON_LENGTH(yearlyData);
+    WHILE yearlyIndex < yearlyCount DO
+        SET yearlyMonthName = JSON_UNQUOTE(JSON_EXTRACT(yearlyData, CONCAT('$[', yearlyIndex, '].month_name')));
+        SET yearlyExpense = JSON_UNQUOTE(JSON_EXTRACT(yearlyData, CONCAT('$[', yearlyIndex, '].expense')));
+        INSERT INTO yearly_chart_data (user_ID, month_name, expense, created_at, updated_at)
+        VALUES (userID, yearlyMonthName, yearlyExpense, NOW(), NOW());
+        SET yearlyIndex = yearlyIndex + 1;
+    END WHILE;
+
+    -- Insert Forecast Data
+    INSERT INTO forecast_data (user_ID, monthly_expense, total_expense, total_income, weekly_expense, yearly_expense, created_at, updated_at)
+    VALUES (
+        userID,
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.monthly_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.total_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.total_income')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.weekly_expense')),
+        JSON_UNQUOTE(JSON_EXTRACT(forecast, '$.yearly_expense')),
+        NOW(),
+        NOW()
+    );
+
+    -- Insert User Insights
+    INSERT INTO user_insights (user_ID, forecasting_message, insights, saving_percentage, spending_percentage, created_at, updated_at)
+    VALUES (
+        userID,
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.forecasting_message')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.insights')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.saving_percentage')),
+        JSON_UNQUOTE(JSON_EXTRACT(insights, '$.spending_percentage')),
+        NOW(),
+        NOW()
+    );
+
+    -- Insert Thread Data
+    INSERT INTO user_threads (user_ID, thread_id, created_at, updated_at)
+    VALUES (userID, threadID, NOW(), NOW());
+
+    -- Add Notification
+    INSERT INTO notifications (user_ID, type, message, is_read, created_at, updated_at)
+    VALUES (
+        userID,
+        'financeforecast',
+        CONCAT('Hey, ', userName, ', your new finance forecast information is available. Go ahead and check it out.'),
+        0,
+        NOW(),
+        NOW()
+    );
+
+END $$
+
+DELIMITER ;
+
+
+
+09.
+Procedure name : GetProfessionalsByType
+DELIMITER $$
+
+CREATE PROCEDURE GetProfessionalsByType(
+    IN professionalType VARCHAR(255) -- Pass the type to filter, or 'ALL' to fetch all records
+)
+BEGIN
+    IF professionalType = 'ALL' THEN
+        -- Fetch all professionals along with user details
+        SELECT
+            p.user_ID,
+            CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+            u.profile_image,
+            p.status,
+            p.type,
+            p.charge_per_Hr
+        FROM professionals p
+        INNER JOIN users u ON p.user_ID = u.user_ID;
+    ELSE
+        -- Fetch professionals of the specified type along with user details
+        SELECT
+            p.user_ID,
+            CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+            u.profile_image,
+            p.status,
+            p.type,
+            p.charge_per_Hr
+        FROM professionals p
+        INNER JOIN users u ON p.user_ID = u.user_ID
+        WHERE p.type = professionalType;
+    END IF;
+END $$
+
+DELIMITER ;
+
+
+
+
+10.
+Procedure name :
+DELIMITER $$
+CREATE PROCEDURE GetConsolidatedUserData(
+    IN userID BIGINT
+)
+BEGIN
+    SELECT
+        u.user_ID,
+        CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+        u.email,
+        u.type AS user_type,
+        wcd.day_name AS weekly_day_name,
+        wcd.expense AS weekly_expense,
+        mcd.week_name AS monthly_week_name,
+        mcd.expense AS chart_monthly_expense,
+        ycd.month_name AS yearly_month_name,
+        ycd.expense AS yearly_chart_expense,
+        fd.monthly_expense AS forecast_monthly_expense,
+        fd.total_expense,
+        fd.total_income,
+        fd.weekly_expense AS forecast_weekly_expense,
+        fd.yearly_expense AS forecast_yearly_expense,
+        ui.forecasting_message,
+        ui.insights,
+        ui.saving_percentage,
+        ui.spending_percentage,
+        ut.thread_id
+    FROM users u
+    LEFT JOIN weekly_chart_data wcd ON u.user_ID = wcd.user_ID
+    LEFT JOIN monthly_chart_data mcd ON u.user_ID = mcd.user_ID
+    LEFT JOIN yearly_chart_data ycd ON u.user_ID = ycd.user_ID
+    LEFT JOIN forecast_data fd ON u.user_ID = fd.user_ID
+    LEFT JOIN user_insights ui ON u.user_ID = ui.user_ID
+    LEFT JOIN user_threads ut ON u.user_ID = ut.user_ID
+    WHERE u.user_ID = userID;
+END $$
+DELIMITER ;
+
+11.
+DELIMITER $$
+
+CREATE PROCEDURE CleanAllTables()
+BEGIN
+    -- Disable foreign key checks to avoid constraints issues
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- Truncate all related tables
+    TRUNCATE TABLE weekly_chart_data;
+    TRUNCATE TABLE monthly_chart_data;
+    TRUNCATE TABLE yearly_chart_data;
+    TRUNCATE TABLE forecast_data;
+    TRUNCATE TABLE user_insights;
+    TRUNCATE TABLE user_threads;
+
+    -- Optionally truncate users table if needed (be cautious with this)
+    -- TRUNCATE TABLE users;
+
+    -- Re-enable foreign key checks
+    SET FOREIGN_KEY_CHECKS = 1;
+END $$
+
+DELIMITER ;
+
+
+
+12.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetUserMeetings(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        m.meeting_ID,
+        m.start_time_date,
+        m.end_time_date,
+        m.meet_url,
+        m.status AS meeting_status,
+        -- Professional Information
+        p.user_ID AS professional_user_ID,
+        CONCAT(professional_user.first_name, ' ', professional_user.last_name) AS professional_name,
+        professional_user.email AS professional_email,
+        professional_user.profile_image AS professional_profile_image,
+        -- Payment Information
+        pay.payment_ID,
+        pay.datetime AS payment_datetime,
+        pay.amount AS payment_amount,
+        pay.payhere_payment_ID AS external_payment_ID
+    FROM
+        meetings m
+    -- Join with professionals table to get professional user_ID
+    INNER JOIN professionals p ON m.user_ID_professional = p.user_ID
+    -- Join with users table to get professional user details
+    INNER JOIN users professional_user ON p.user_ID = professional_user.user_ID
+    -- Left Join with payments table to get payment details
+    LEFT JOIN payments pay ON m.meeting_ID = pay.meeting_ID
+    WHERE m.user_ID_customer = userID; -- Filter by customer ID
+END $$
+
+DELIMITER ;
+
+
+
+
+13.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetCategoryWiseExpense(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        c.category_ID,
+        c.category AS category_name,
+        SUM(el.amount) AS total_amount
+    FROM
+        expenses e
+    INNER JOIN expenses_list el ON e.expenses_ID = el.expenses_id
+    INNER JOIN reasons r ON el.reason_ID = r.reason_ID
+    INNER JOIN categories c ON r.category_ID = c.category_ID
+    WHERE
+        e.user_ID = userID
+        AND MONTH(e.created_at) = MONTH(CURDATE()) -- Current month
+        AND YEAR(e.created_at) = YEAR(CURDATE())  -- Current year
+    GROUP BY
+        c.category_ID, c.category;
+END $$
+
+DELIMITER ;
+
+
+14.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE GetExpenseAmountsAndDates(
+    IN userID BIGINT -- Input parameter for the user's ID
+)
+BEGIN
+    SELECT
+        el.amount,
+        e.created_at AS spending_date
+    FROM
+        expenses e
+    INNER JOIN expenses_list el ON e.expenses_ID = el.expenses_id
+    WHERE
+        e.user_ID = userID
+        AND MONTH(e.created_at) = MONTH(CURDATE()) -- Current month
+        AND YEAR(e.created_at) = YEAR(CURDATE());  -- Current year
+END $$
+
+DELIMITER ;
+
+
+15.
+Procedure name :
+DELIMITER $$
+
+CREATE PROCEDURE BookProfessionalMeeting(
+    IN customerID BIGINT,          -- ID of the customer booking the meeting
+    IN professionalID BIGINT,      -- ID of the professional for the meeting
+    IN startTime DATETIME,         -- Start time of the meeting
+    OUT meetingID BIGINT           -- Output parameter for the meeting ID
+)
+BEGIN
+    DECLARE customer_name VARCHAR(255);
+    DECLARE professional_name VARCHAR(255);
+    DECLARE charge_per_hr DECIMAL(10, 2);
+    DECLARE end_time DATETIME;
+
+    -- Step 1.1: Validate Customer and Retrieve Details
+    SELECT CONCAT(first_name, ' ', last_name) INTO customer_name
+    FROM users
+    WHERE user_ID = customerID;
+
+    -- Step 1.2: Validate Professional and Retrieve Details
+    SELECT CONCAT(first_name, ' ', last_name), charge_per_Hr INTO professional_name, charge_per_hr
+    FROM users
+    JOIN professionals ON professionals.user_ID = users.user_ID
+    WHERE users.user_ID = professionalID;
+
+    -- Step 2: Insert Meeting Record
+    SET end_time = DATE_ADD(startTime, INTERVAL 1 HOUR); -- Calculate end time as 1 hour after start time
+
+    INSERT INTO meetings (start_time_date, end_time_date, user_ID_customer, user_ID_professional, meet_url, status, created_at, updated_at)
+    VALUES (startTime, end_time, customerID, professionalID, NULL, 'inCompleate payment', NOW(), NOW());
+
+    SET meetingID = LAST_INSERT_ID(); -- Retrieve the meeting ID of the newly created record
+
+    -- Step 3: Send Notification
+    INSERT INTO notifications (user_ID, type, message, created_at, updated_at)
+    VALUES
+        (customerID, 'meeting', CONCAT('Dear ', customer_name, ', complete the payment for the meeting with ', professional_name, ' scheduled on ', startTime, '. Thank you. From Benji'), NOW(), NOW());
+END $$
+
+DELIMITER ;
+
+
+
+16.
+Procedure name :
+DELIMITER //
+
+CREATE PROCEDURE GetUserPendingMeetings(
+    IN userID BIGINT -- User ID for whom the meetings are retrieved
+)
+BEGIN
+    SELECT
+        m.meet_url AS meeting_url,
+        m.start_time_date AS start_time,
+        m.end_time_date AS end_time,
+        CONCAT(prof_user.first_name, ' ', prof_user.last_name) AS professional_name,
+        prof_user.email AS professional_email
+    FROM
+        meetings m
+    INNER JOIN
+        professionals p ON m.user_ID_professional = p.user_ID
+    INNER JOIN
+        users prof_user ON p.user_ID = prof_user.user_ID
+    WHERE
+        m.user_ID_customer = userID
+        AND m.status = 'pending';
+END //
+
+DELIMITER ;
+
+
+
+17.
+Procedure name :
+DELIMITER //
+
+CREATE PROCEDURE GetUserIncompletePaymentMeetings(
+    IN userID BIGINT -- User ID for whom the meetings are retrieved
+)
+BEGIN
+    SELECT
+        m.meet_url AS meeting_url,
+        m.start_time_date AS start_time,
+        m.end_time_date AS end_time,
+        CONCAT(prof_user.first_name, ' ', prof_user.last_name) AS professional_name,
+        prof_user.email AS professional_email
+    FROM
+        meetings m
+    INNER JOIN
+        professionals p ON m.user_ID_professional = p.user_ID
+    INNER JOIN
+        users prof_user ON p.user_ID = prof_user.user_ID
+    WHERE
+        m.user_ID_customer = userID
+        AND m.status = 'incompleatepayment';
+END //
+
+DELIMITER ;
+
+
+18.
+Procedure name:
+DELIMITER //
+
+CREATE PROCEDURE GetUserNotifications(
+    IN userID BIGINT -- User ID for whom the notifications are retrieved
+)
+BEGIN
+    -- Retrieve unread notifications
+    SELECT
+        notification_ID,
+        user_ID,
+        type,
+        message,
+        is_read,
+        created_at,
+        updated_at
+    FROM
+        notifications
+    WHERE
+        user_ID = userID AND is_read = 0;
+
+    -- Retrieve read notifications
+    SELECT
+        notification_ID,
+        user_ID,
+        type,
+        message,
+        is_read,
+        created_at,
+        updated_at
+    FROM
+        notifications
+    WHERE
+        user_ID = userID AND is_read = 1;
+END //
+
+DELIMITER ;
+
+
+Viwes
+
+01.
+CREATE VIEW UserExpenseIncomeView AS
+SELECT DISTINCT
+    users.user_ID,
+    CONCAT(users.first_name, ' ', users.last_name) AS user_name,
+    users.email AS user_email,
+    incomes.source_name AS income_source_name,
+    incomes.amount AS income_amount,
+    incomes.frequency AS income_frequency,
+    incomes.description AS income_description,
+    expenses.expenses_ID AS expense_id,
+    expenses.created_at AS expense_date,
+    expenses_list.reason_ID AS expense_reason_id,
+    expenses_list.amount AS expense_amount,
+    expenses_list.description AS expense_description,
+    reasons.reason AS reason_text,
+    categories.category AS category_name
+FROM
+    (SELECT * FROM users WHERE type != 'Admin') AS users
+LEFT JOIN income_sources AS incomes ON incomes.user_ID = users.user_ID
+LEFT JOIN expenses ON expenses.user_ID = users.user_ID
+LEFT JOIN expenses_list ON expenses_list.expenses_id = expenses.expenses_ID
+LEFT JOIN reasons ON reasons.reason_ID = expenses_list.reason_ID
+LEFT JOIN categories ON categories.category_ID = reasons.category_ID;
+
+
+02.
+CREATE OR REPLACE VIEW consolidated_user_data AS
+SELECT
+    u.user_ID,
+    CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+    u.email,
+    u.type AS user_type,
+    -- Weekly Chart Data
+    wcd.day_name AS weekly_day_name,
+    wcd.expense AS weekly_expense,
+    -- Monthly Chart Data
+    mcd.week_name AS monthly_week_name,
+    mcd.expense AS chart_monthly_expense, -- Alias to avoid duplicate name
+    -- Yearly Chart Data
+    ycd.month_name AS yearly_month_name,
+    ycd.expense AS yearly_chart_expense, -- Alias to avoid duplicate name
+    -- Forecast Data
+    fd.monthly_expense AS forecast_monthly_expense, -- Alias to avoid duplicate name
+    fd.total_expense,
+    fd.total_income,
+    fd.weekly_expense AS forecast_weekly_expense,
+    fd.yearly_expense AS forecast_yearly_expense,
+    -- User Insights
+    ui.forecasting_message,
+    ui.insights,
+    ui.saving_percentage,
+    ui.spending_percentage,
+    -- User Threads
+    ut.thread_id
+FROM
+    users u
+LEFT JOIN weekly_chart_data wcd ON u.user_ID = wcd.user_ID
+LEFT JOIN monthly_chart_data mcd ON u.user_ID = mcd.user_ID
+LEFT JOIN yearly_chart_data ycd ON u.user_ID = ycd.user_ID
+LEFT JOIN forecast_data fd ON u.user_ID = fd.user_ID
+LEFT JOIN user_insights ui ON u.user_ID = ui.user_ID
+LEFT JOIN user_threads ut ON u.user_ID = ut.user_ID;
+
+
+03.
+CREATE OR REPLACE VIEW user_meetings_view AS
+SELECT
+    m.meeting_ID,
+    m.start_time_date,
+    m.end_time_date,
+    m.meet_url,
+    m.status AS meeting_status,
+    -- Professional Information
+    p.user_ID AS professional_user_ID,
+    CONCAT(professional_user.first_name, ' ', professional_user.last_name) AS professional_name,
+    professional_user.email AS professional_email,
+    professional_user.profile_image AS professional_profile_image,
+    -- Payment Information
+    pay.payment_ID,
+    pay.datetime AS payment_datetime,
+    pay.amount AS payment_amount,
+    pay.payhere_payment_ID AS external_payment_ID,
+    -- Customer Information
+    m.user_ID_customer
+FROM
+    meetings m
+-- Join with professionals table to get professional user_ID
+INNER JOIN professionals p ON m.user_ID_professional = p.user_ID
+-- Join with users table to get professional user details
+INNER JOIN users professional_user ON p.user_ID = professional_user.user_ID
+-- Left Join with payments table to get payment details
+LEFT JOIN payments pay ON m.meeting_ID = pay.meeting_ID;

@@ -6,7 +6,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
-        "guzzlehttp/guzzle": "^7.2",
+        "braintree/braintree_php": "^6.21",
+        "google/apiclient": "^2.18",
+        "google/apiclient-services": "^0.384.0",
+        "guzzlehttp/guzzle": "^7.9",
+        "lahirulhr/laravel-payhere": "^1.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8"
@@ -59,7 +63,8 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
-        }
+        },
+        "process-timeout": 1200
     },
     "minimum-stability": "stable",
     "prefer-stable": true

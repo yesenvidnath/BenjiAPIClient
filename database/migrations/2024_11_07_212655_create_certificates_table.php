@@ -9,13 +9,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('certificates', function (Blueprint $table) {
-            $table->id();
+            $table->id('certificate_ID');
+            $table->foreignId('professional_ID')->constrained('professionals', 'user_ID');
+            $table->string('certificate_name');
+            $table->date('certificate_date');
+            $table->string('certificate_image');
             $table->timestamps();
         });
     }
+
 
     /**
      * Reverse the migrations.

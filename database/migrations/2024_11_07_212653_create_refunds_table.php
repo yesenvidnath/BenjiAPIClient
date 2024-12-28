@@ -9,10 +9,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('refunds', function (Blueprint $table) {
-            $table->id();
+            $table->id('refund_ID');
+            $table->foreignId('payment_ID')->constrained('payments','payment_ID');
+            $table->dateTime('paymentdate');
+            $table->dateTime('refunddate')->nullable();
+            $table->enum('status', ['pending', 'given']);
             $table->timestamps();
         });
     }

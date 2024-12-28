@@ -72,6 +72,7 @@ Route::prefix('user-management-service')->group(function () {
         Route::post('/send-bulk', [UserCommunicationController::class, 'sendBulkNotification']);
         Route::post('/mark-read', [UserCommunicationController::class, 'markNotificationAsRead']);
         Route::delete('/delete', [UserCommunicationController::class, 'deleteNotification']);
+        Route::get('/notifications', [UserCommunicationController::class, 'getUserNotifications']);
     });
 
     // Route::prefix('expenses')->middleware('auth:sanctum')->group(function () {
@@ -80,7 +81,6 @@ Route::prefix('user-management-service')->group(function () {
 
     // Profeshnal Management
     Route::middleware('auth:sanctum')->group(function (){
-
         Route::prefix('professional')->group(function () {
             Route::post('/convert-to-professional', [ProfileController::class, 'convertToProfessional']);
             Route::post('/update-profile', [ProfileController::class, 'updateProfessionalProfile']);
@@ -129,9 +129,12 @@ Route::prefix('Bot-service')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('customer')->group(function () {
     Route::post('/book-meeting', [BookProfeshanal::class, 'bookMeeting']);
-    Route::get('/professionals/{type?}', [GetAllProfessinoalsByCategory::class, 'getAllProfessionalsByType']);
+    Route::middleware('auth:sanctum')->post('/professionals/all', [GetAllProfessinoalsByCategory::class, 'getAllProfessionals']);
     Route::get('/consolidated-data', [BotResponse::class, 'getConsolidatedUserData']);
     Route::get('/current-month-data', [BotResponse::class, 'getCurrentMonthExpenses']);
+    Route::get('/professional-types', [GetAllProfessinoalsByCategory::class, 'getAllProfessionalTypes']);
+    Route::get('/meetings/all', [BookProfeshanal::class, 'getUserPendingMeetings']);
+    Route::get('/meetings/InCompleatePayments', [BookProfeshanal::class, 'getUserIncompletePaymentMeetings']);
 
 });
 
@@ -143,6 +146,7 @@ Route::prefix('Meetings-Management-service')->group(function () {
     Route::patch('/{meetingId}', [MeetingController::class, 'updateMeeting'])->name('api.meetings.update');
     // Delete a meeting
     Route::delete('/{meetingId}', [MeetingController::class, 'deleteMeeting'])->name('api.meetings.delete');
+
 });
 
 

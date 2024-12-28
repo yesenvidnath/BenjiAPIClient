@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -21,21 +22,58 @@ class ProfileController extends Controller
      */
     public function convertToProfessional(Request $request)
     {
-        // Validate the incoming request
         try {
             $validatedData = $request->validate([
-                'professionalType' => 'required|in:Accountant,Financial Advisor,Stock Broker,Banker,Insurance Agent,Investment Specialist,Tax Consultant,Real Estate Agent,Loan Officer,Wealth Manager,Mortgage Advisor,Retirement Planner,Business Consultant,Other',
+                'professionalType' => [
+                    'required',
+                    Rule::in([
+                        'Accountant', 'Financial Advisor', 'Stock Broker', 'Banker',
+                        'Insurance Agent', 'Investment Specialist', 'Tax Consultant',
+                        'Real Estate Agent', 'Loan Officer', 'Wealth Manager',
+                        'Mortgage Advisor', 'Retirement Planner', 'Business Consultant', 'Other'
+                    ])
+                ],
                 'certificates' => 'required|array',
                 'certificates.*.certificateName' => 'required|string|max:255',
                 'certificates.*.certificateDate' => 'required|date',
-                'certificates.*.certificateImage' => 'required|image|mimes:jpg,jpeg,png|max:1024', // 1MB max
+                'certificates.*.certificateImage' => 'required|file|mimes:jpg,jpeg,png|max:1024'
             ]);
-        } catch (ValidationException $e) {
+
+            $userID = Auth::id(); // Get the authenticated user ID
+            $certificatesData = [];
+
+            foreach ($validatedData['certificates'] as $index => $certificateDetails) {
+                $certificateFile = $request->file("certificates.{$index}.certificateImage");
+
+                // Save the file
+                $path = $certificateFile->store('certificates', 'public');
+
+                // Collect certificate details
+                $certificatesData[] = [
+                    'certificateID' => Str::uuid()->toString(),
+                    'certificateName' => $certificateDetails['certificateName'],
+                    'certificateDate' => $certificateDetails['certificateDate'],
+                    'certificateImage' => $path,
+                ];
+            }
+
+            DB::statement('CALL ConvertCustomerToProfessional(?, ?, ?)', [
+                $userID,
+                json_encode($certificatesData),
+                $validatedData['professionalType']
+            ]);
+
             return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+                'message' => 'Successfully converted to professional',
+                'certificates' => $certificatesData
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => 'Validation failed', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Error converting user: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to convert user', 'error' => $e->getMessage()], 500);
         }
+
 
         // Get authenticated user ID
         $userID = $this->getAuthenticatedUserId();

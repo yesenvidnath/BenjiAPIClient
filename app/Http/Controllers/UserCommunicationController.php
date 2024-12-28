@@ -197,4 +197,43 @@ class UserCommunicationController extends Controller
         return response()->json(['message' => 'Notifications deleted successfully.'], 200);
     }
 
+
+    public function getUserNotifications(Request $request)
+    {
+        // Get the authenticated user's ID
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not authenticated.'], 401);
+        }
+
+        $userID = $user->user_ID;
+
+        try {
+            // Call the stored procedure to get notifications
+            $unreadNotifications = DB::select('CALL GetUserNotifications(?)', [$userID]);
+
+            // Separate unread and read notifications
+            $unread = array_filter($unreadNotifications, function ($notification) {
+                return $notification->is_read == 0;
+            });
+
+            $read = array_filter($unreadNotifications, function ($notification) {
+                return $notification->is_read == 1;
+            });
+
+            // Return the data in separate sections
+            return response()->json([
+                'message' => 'Notifications retrieved successfully.',
+                'unread_notifications' => $unread,
+                'read_notifications' => $read,
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle any errors
+            return response()->json([
+                'message' => 'An error occurred while retrieving notifications.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

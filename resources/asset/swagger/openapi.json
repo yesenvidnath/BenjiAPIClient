@@ -1,0 +1,2153 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Benji",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000"
+    },
+    {
+      "url": "https://1722-34-91-140-174.ngrok-free.app"
+    },
+    {
+      "url": "https://4074-34-106-252-65.ngrok-free.app"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "User Managemnt"
+    },
+    {
+      "name": "Income Management"
+    },
+    {
+      "name": "Profile Management"
+    },
+    {
+      "name": "Profile Management > Profeshnal"
+    },
+    {
+      "name": "Notification Management"
+    },
+    {
+      "name": "Expensess Management"
+    },
+    {
+      "name": "Expensess Management > Connect with AI"
+    },
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Admin > Fixed Data"
+    },
+    {
+      "name": "Meetings"
+    },
+    {
+      "name": "Customer"
+    }
+  ],
+  "paths": {
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "User Managemnt"
+        ],
+        "summary": "re-setpassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "current_password": "password123",
+                  "new_password": "yesen123",
+                  "new_password_confirmation": "yesen123"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/income-sources/add": {
+      "post": {
+        "tags": [
+          "Income Management"
+        ],
+        "summary": "Add Income",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "source_name": "Freelance Work",
+                  "amount": 2000,
+                  "frequency": "monthly",
+                  "description": "Income from freelance projects"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/income-sources/update/1": {
+      "put": {
+        "tags": [
+          "Income Management"
+        ],
+        "summary": "Update Income",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "source_name": "Updated Freelance Work",
+                  "amount": 1200,
+                  "frequency": "annual",
+                  "description": "Updated description"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/income-sources/get/1": {
+      "get": {
+        "tags": [
+          "Income Management"
+        ],
+        "summary": "Search Income (one)",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/income-sources/delete/1": {
+      "delete": {
+        "tags": [
+          "Income Management"
+        ],
+        "summary": "Delete Income",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/income-sources/search": {
+      "get": {
+        "tags": [
+          "Income Management"
+        ],
+        "summary": "Search Incomes (All)",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/professional/convert-to-professional": {
+      "post": {
+        "tags": [
+          "Profile Management > Profeshnal"
+        ],
+        "summary": "Convert Profeshnal",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "professionalType": {
+                    "type": "string",
+                    "example": "Wealth Manager"
+                  },
+                  "certificates[0][certificateImage]": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "certificates[0][certificateName]": {
+                    "type": "string",
+                    "example": "Certified Wealth Manager"
+                  },
+                  "certificates[0][certificateDate]": {
+                    "type": "string",
+                    "example": "2020-01-01"
+                  },
+                  "certificates[1][certificateImage]": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "certificates[1][certificateName]": {
+                    "type": "string",
+                    "example": "Certified Financial Planner"
+                  },
+                  "certificates[1][certificateDate]": {
+                    "type": "string",
+                    "example": "2021-06-15"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "multipart/form-data"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/professional/update-profile": {
+      "post": {
+        "tags": [
+          "Profile Management > Profeshnal"
+        ],
+        "summary": "Update Profeshanal Profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "user_ID": 1,
+                  "status": "active",
+                  "type": "Financial Advisor"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/profile/update": {
+      "put": {
+        "tags": [
+          "Profile Management"
+        ],
+        "summary": "Profile Update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "first_name": "Janeupdatednow",
+                  "last_name": "Doe",
+                  "address": "456 New Street",
+                  "phone_number": "0987654321",
+                  "email": "johnnydoe@example.com",
+                  "profile_image": "https://example.com/newimageofjaneman.jpg"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/auth/profile/me": {
+      "get": {
+        "tags": [
+          "Profile Management"
+        ],
+        "summary": "Get Profile info",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/profile/search": {
+      "get": {
+        "tags": [
+          "Profile Management"
+        ],
+        "summary": "Profile Search",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Jane"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/profile/delete": {
+      "delete": {
+        "tags": [
+          "Profile Management"
+        ],
+        "summary": "Profile Delete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/notify/send": {
+      "post": {
+        "tags": [
+          "Notification Management"
+        ],
+        "summary": "Notification Send",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "type": "general",
+                  "message": "This is a test notification",
+                  "user_type": "Professional"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/notify/send-bulk": {
+      "post": {
+        "tags": [
+          "Notification Management"
+        ],
+        "summary": "Notification Send (Bulk)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "type": "meeting",
+                  "message": "Meeting scheduled for all Professionals.",
+                  "user_type": "Professional",
+                  "start_user_ID": 1,
+                  "end_user_ID": 20
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/notify/mark-read": {
+      "post": {
+        "tags": [
+          "Notification Management"
+        ],
+        "summary": "Mark Reded Notification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "notification_id": "1-6"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/notify/delete": {
+      "delete": {
+        "tags": [
+          "Notification Management"
+        ],
+        "summary": "Deleet Notifications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Bot-service/expenses": {
+      "post": {
+        "tags": [
+          "Expensess Management > Connect with AI"
+        ],
+        "summary": "Send Expensess to Bot with UID and info by dates",
+        "requestBody": {
+          "content": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/analyze": {
+      "post": {
+        "tags": [
+          "Expensess Management > Connect with AI"
+        ],
+        "summary": "Get User Forcasting & Prediction Per 1 user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "user_id": 1
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/all_users": {
+      "post": {
+        "tags": [
+          "Expensess Management > Connect with AI"
+        ],
+        "summary": "Get All Users Forcasting & Predictions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "message": "Data retrieved successfully.",
+                  "data": [
+                    {
+                      "user_ID": 1,
+                      "user_name": "Michael Brown",
+                      "user_email": "michael.brown@example.com",
+                      "incomes": [
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        }
+                      ],
+                      "expenses": []
+                    },
+                    {
+                      "user_ID": 2,
+                      "user_name": "Emma Johnson",
+                      "user_email": "emma.johnson@example.com",
+                      "incomes": [
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        },
+                        {
+                          "source_name": "Freelance Work",
+                          "amount": "2000.00",
+                          "frequency": "monthly",
+                          "description": "Freelance writing projects"
+                        }
+                      ],
+                      "expenses": [
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 1,
+                          "amount": "2000.00",
+                          "description": "Tuition fee payment for a school or college",
+                          "reason_text": "Tuition fee payment for a school or college",
+                          "category_name": "Groceries and Food"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 2,
+                          "amount": "150.00",
+                          "description": "Purchase of textbooks and study materials",
+                          "reason_text": "Purchase of textbooks and study materials",
+                          "category_name": "Groceries and Food"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 3,
+                          "amount": "300.00",
+                          "description": "Online course or workshop fee",
+                          "reason_text": "Online course or workshop fee",
+                          "category_name": "Groceries and Food"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 4,
+                          "amount": "250.00",
+                          "description": "Payment for car service or maintenance",
+                          "reason_text": "Payment for car service or maintenance",
+                          "category_name": "Transportation"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 5,
+                          "amount": "75.00",
+                          "description": "Purchase of spare parts for a vehicle",
+                          "reason_text": "Purchase of spare parts for a vehicle",
+                          "category_name": "Transportation"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 7,
+                          "amount": "100.00",
+                          "description": "Purchase of party supplies (decorations, balloons)",
+                          "reason_text": "Purchase of party supplies (decorations, balloons)",
+                          "category_name": "Party and Fun"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 10,
+                          "amount": "50.00",
+                          "description": "Purchase of vegetables and fruits from a local market",
+                          "reason_text": "Purchase of vegetables and fruits from a local market",
+                          "category_name": "Groceries and Food"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 11,
+                          "amount": "30.00",
+                          "description": "Payment for a meal at a restaurant",
+                          "reason_text": "Payment for a meal at a restaurant",
+                          "category_name": "Groceries and Food"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 16,
+                          "amount": "60.00",
+                          "description": "Fuel purchase for a car",
+                          "reason_text": "Fuel purchase for a car",
+                          "category_name": "Transportation"
+                        },
+                        {
+                          "expense_id": 2,
+                          "expense_date": "2024-12-11 02:07:23",
+                          "reason_id": 18,
+                          "amount": "15.00",
+                          "description": "Ride-sharing service payment (e.g., Uber, Lyft)",
+                          "reason_text": "Ride-sharing service payment (e.g., Uber, Lyft)",
+                          "category_name": "Transportation"
+                        }
+                      ]
+                    },
+                    {
+                      "user_ID": 3,
+                      "user_name": "Michael Brown",
+                      "user_email": "whobrown@example.com",
+                      "incomes": [
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        },
+                        {
+                          "source_name": "Teaching",
+                          "amount": "3000.00",
+                          "frequency": "monthly",
+                          "description": "Online teaching job"
+                        }
+                      ],
+                      "expenses": [
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 19,
+                          "amount": "120.00",
+                          "description": "Purchase of toiletries and personal care products",
+                          "reason_text": "Purchase of toiletries and personal care products",
+                          "category_name": "Personal Care and Health"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 20,
+                          "amount": "250.00",
+                          "description": "Payment for a doctor's appointment",
+                          "reason_text": "Payment for a doctor's appointment",
+                          "category_name": "Personal Care and Health"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 21,
+                          "amount": "75.00",
+                          "description": "Buying prescription medicines from a pharmacy",
+                          "reason_text": "Buying prescription medicines from a pharmacy",
+                          "category_name": "Personal Care and Health"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 22,
+                          "amount": "15.00",
+                          "description": "Subscription fee for a streaming service (e.g., Netflix, Spotify)",
+                          "reason_text": "Subscription fee for a streaming service (e.g., Netflix, Spotify)",
+                          "category_name": "Entertainment and Leisure"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 23,
+                          "amount": "20.00",
+                          "description": "Payment for a movie ticket",
+                          "reason_text": "Payment for a movie ticket",
+                          "category_name": "Entertainment and Leisure"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 24,
+                          "amount": "12.00",
+                          "description": "Purchase of a book or magazine",
+                          "reason_text": "Purchase of a book or magazine",
+                          "category_name": "Entertainment and Leisure"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 25,
+                          "amount": "500.00",
+                          "description": "Initial down payment for an installment plan (e.g., electronics)",
+                          "reason_text": "Initial down payment for an installment plan (e.g., electronics)",
+                          "category_name": "Part Payment Purchases"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 26,
+                          "amount": "50.00",
+                          "description": "Monthly installment payment for a purchased item",
+                          "reason_text": "Monthly installment payment for a purchased item",
+                          "category_name": "Part Payment Purchases"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 28,
+                          "amount": "300.00",
+                          "description": "Monthly premium payment for life insurance",
+                          "reason_text": "Monthly premium payment for life insurance",
+                          "category_name": "Life Insurance and Financial Services"
+                        },
+                        {
+                          "expense_id": 3,
+                          "expense_date": "2024-12-11 02:08:50",
+                          "reason_id": 29,
+                          "amount": "400.00",
+                          "description": "Payment for health insurance premiums",
+                          "reason_text": "Payment for health insurance premiums",
+                          "category_name": "Life Insurance and Financial Services"
+                        },
+                        {
+                          "expense_id": 4,
+                          "expense_date": "2024-12-20 02:55:46",
+                          "reason_id": null,
+                          "amount": null,
+                          "description": null,
+                          "reason_text": null,
+                          "category_name": null
+                        },
+                        {
+                          "expense_id": 5,
+                          "expense_date": "2024-12-20 04:04:51",
+                          "reason_id": 34,
+                          "amount": "200.00",
+                          "description": "Benji Professional Meetup Payment",
+                          "reason_text": "Benji Professional Meetup",
+                          "category_name": "Education"
+                        },
+                        {
+                          "expense_id": 6,
+                          "expense_date": "2024-12-20 04:11:00",
+                          "reason_id": 34,
+                          "amount": "200.00",
+                          "description": "Benji Professional Meetup Payment",
+                          "reason_text": "Benji Professional Meetup",
+                          "category_name": "Education"
+                        }
+                      ]
+                    },
+                    {
+                      "user_ID": 4,
+                      "user_name": "Sophia Williams",
+                      "user_email": "sophia.williams@example.com",
+                      "incomes": [],
+                      "expenses": []
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/add": {
+      "post": {
+        "tags": [
+          "Expensess Management"
+        ],
+        "summary": "Expensess Add",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "expensesDetails": [
+                    {
+                      "reason_ID": 19,
+                      "amount": 120,
+                      "description": "Purchase of toiletries and personal care products"
+                    },
+                    {
+                      "reason_ID": 20,
+                      "amount": 250,
+                      "description": "Payment for a doctor's appointment"
+                    },
+                    {
+                      "reason_ID": 21,
+                      "amount": 75,
+                      "description": "Buying prescription medicines from a pharmacy"
+                    },
+                    {
+                      "reason_ID": 22,
+                      "amount": 15,
+                      "description": "Subscription fee for a streaming service (e.g., Netflix, Spotify)"
+                    },
+                    {
+                      "reason_ID": 23,
+                      "amount": 20,
+                      "description": "Payment for a movie ticket"
+                    },
+                    {
+                      "reason_ID": 24,
+                      "amount": 12,
+                      "description": "Purchase of a book or magazine"
+                    },
+                    {
+                      "reason_ID": 25,
+                      "amount": 500,
+                      "description": "Initial down payment for an installment plan (e.g., electronics)"
+                    },
+                    {
+                      "reason_ID": 26,
+                      "amount": 50,
+                      "description": "Monthly installment payment for a purchased item"
+                    },
+                    {
+                      "reason_ID": 28,
+                      "amount": 300,
+                      "description": "Monthly premium payment for life insurance"
+                    },
+                    {
+                      "reason_ID": 29,
+                      "amount": 400,
+                      "description": "Payment for health insurance premiums"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/update/1": {
+      "put": {
+        "tags": [
+          "Expensess Management"
+        ],
+        "summary": "Expensess Update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "expensesDetails": [
+                    {
+                      "reason_ID": 1,
+                      "amount": 2500,
+                      "description": "Updated tuition fee"
+                    },
+                    {
+                      "reason_ID": 2,
+                      "amount": 175,
+                      "description": "Updated textbook purchase"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/delete-item/1/8": {
+      "delete": {
+        "tags": [
+          "Expensess Management"
+        ],
+        "summary": "Expensess Delete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/all": {
+      "get": {
+        "tags": [
+          "Expensess Management"
+        ],
+        "summary": "Expensess Search",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Expensess-Management-service/reasons/all": {
+      "get": {
+        "tags": [
+          "Expensess Management"
+        ],
+        "summary": "Get all Reasons",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Admin-Management-service/categories": {
+      "post": {
+        "tags": [
+          "Admin > Fixed Data"
+        ],
+        "summary": "Categoirs Add",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "categories": [
+                    {
+                      "category": "Groceries and Food"
+                    },
+                    {
+                      "category": "Housing and Utilities"
+                    },
+                    {
+                      "category": "Transportation"
+                    },
+                    {
+                      "category": "Personal Care and Health"
+                    },
+                    {
+                      "category": "Entertainment and Leisure"
+                    },
+                    {
+                      "category": "Education"
+                    },
+                    {
+                      "category": "Vehicle Repair and Maintenance"
+                    },
+                    {
+                      "category": "Party and Fun"
+                    },
+                    {
+                      "category": "Part Payment Purchases"
+                    },
+                    {
+                      "category": "Life Insurance and Financial Services"
+                    },
+                    {
+                      "category": "Loans and Credit"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Admin-Management-service/reasons": {
+      "post": {
+        "tags": [
+          "Admin > Fixed Data"
+        ],
+        "summary": "Reasons Add",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "reasons": [
+                    {
+                      "reason": "Tuition fee payment for a school or college",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Purchase of textbooks and study materials",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Online course or workshop fee",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Payment for car service or maintenance",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Purchase of spare parts for a vehicle",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Payment for a car wash",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Purchase of party supplies (decorations, balloons)",
+                      "category_ID": 8
+                    },
+                    {
+                      "reason": "Payment for event tickets (concerts, festivals)",
+                      "category_ID": 8
+                    },
+                    {
+                      "reason": "Renting a venue for a party",
+                      "category_ID": 8
+                    },
+                    {
+                      "reason": "Purchase of vegetables and fruits from a local market",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Payment for a meal at a restaurant",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Buying snacks and beverages from a convenience store",
+                      "category_ID": 1
+                    },
+                    {
+                      "reason": "Monthly rent payment",
+                      "category_ID": 2
+                    },
+                    {
+                      "reason": "Electricity bill payment",
+                      "category_ID": 2
+                    },
+                    {
+                      "reason": "Water bill payment",
+                      "category_ID": 2
+                    },
+                    {
+                      "reason": "Fuel purchase for a car",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Payment for a public transport ticket (bus, train)",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Ride-sharing service payment (e.g., Uber, Lyft)",
+                      "category_ID": 3
+                    },
+                    {
+                      "reason": "Purchase of toiletries and personal care products",
+                      "category_ID": 4
+                    },
+                    {
+                      "reason": "Payment for a doctor's appointment",
+                      "category_ID": 4
+                    },
+                    {
+                      "reason": "Buying prescription medicines from a pharmacy",
+                      "category_ID": 4
+                    },
+                    {
+                      "reason": "Subscription fee for a streaming service (e.g., Netflix, Spotify)",
+                      "category_ID": 5
+                    },
+                    {
+                      "reason": "Payment for a movie ticket",
+                      "category_ID": 5
+                    },
+                    {
+                      "reason": "Purchase of a book or magazine",
+                      "category_ID": 5
+                    },
+                    {
+                      "reason": "Initial down payment for an installment plan (e.g., electronics)",
+                      "category_ID": 9
+                    },
+                    {
+                      "reason": "Monthly installment payment for a purchased item",
+                      "category_ID": 9
+                    },
+                    {
+                      "reason": "Payment for a financed home appliance",
+                      "category_ID": 9
+                    },
+                    {
+                      "reason": "Monthly premium payment for life insurance",
+                      "category_ID": 10
+                    },
+                    {
+                      "reason": "Payment for health insurance premiums",
+                      "category_ID": 10
+                    },
+                    {
+                      "reason": "Contribution to a retirement fund",
+                      "category_ID": 10
+                    },
+                    {
+                      "reason": "Monthly mortgage payment",
+                      "category_ID": 2
+                    },
+                    {
+                      "reason": "Payment for a personal loan installment",
+                      "category_ID": 11
+                    },
+                    {
+                      "reason": "Credit card bill payment",
+                      "category_ID": 11
+                    },
+                    {
+                      "reason": " Benji Profeshnal Meetup ",
+                      "category_ID": 6
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Admin-Management-service/reasons/": {
+      "get": {
+        "tags": [
+          "Admin > Fixed Data"
+        ],
+        "summary": "Reasons List Get",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Meetings-Management-service/create": {
+      "post": {
+        "tags": [
+          "Meetings"
+        ],
+        "summary": "Create meeting URL",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "customer_email": "ykandalama@gmail.com",
+                  "professional_email": "catrip2001@gmail.com",
+                  "start_date_time": "2024-07-15 14:00:00",
+                  "duration": 45
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/Payment-Management-service/finalize-payment": {
+      "post": {
+        "tags": [
+          "Meetings"
+        ],
+        "summary": "FInalize Meetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "meeting_id": 5,
+                  "payment_amount": 2150.5
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/professionals/all": {
+      "post": {
+        "tags": [
+          "Meetings"
+        ],
+        "summary": "Get Profeshnals",
+        "requestBody": {
+          "content": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/professional-types": {
+      "get": {
+        "tags": [
+          "Meetings"
+        ],
+        "summary": "Get all Profeshnal Types",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/book-meeting": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Create BookMeeting",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "professional_id": 4,
+                  "start_time": "2024-12-18 15:00:00"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/consolidated-data": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Get Bot Responses",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/current-month-data": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Get Systamatic Spendings (Currunt Month)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/meetings/InCompleatePayments": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Get InCompleatePayments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/customer/meetings/all": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "Get All Paid meetings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/auth/register": {
+      "post": {
+        "tags": [
+          "default"
+        ],
+        "summary": "User Registration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "type": "customer",
+                  "first_name": "Yesen",
+                  "last_name": "Smith",
+                  "address": "124 Main Street",
+                  "DOB": "1985-03-15",
+                  "phone_number": "0766588440",
+                  "email": "ykandalama@gmail.com",
+                  "password": "password123",
+                  "password_confirmation": "password123",
+                  "profile_image": "https://example.com/admin.jpg",
+                  "bank_choice": "Bank A",
+                  "incomeSources": [
+                    {
+                      "source_name": "Salary",
+                      "amount": 5000,
+                      "frequency": "monthly",
+                      "description": "Monthly salary from job"
+                    },
+                    {
+                      "source_name": "Part-time Job",
+                      "amount": 1000,
+                      "frequency": "monthly",
+                      "description": "Part-time work at a cafe"
+                    },
+                    {
+                      "source_name": "Freelance",
+                      "amount": 1000,
+                      "frequency": "monthly",
+                      "description": "Part-time work at a cafe"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/auth/login": {
+      "post": {
+        "tags": [
+          "default"
+        ],
+        "summary": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "email": "whobrown@example.com",
+                  "password": "password789"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/user-management-service/auth/logout": {
+      "post": {
+        "tags": [
+          "default"
+        ],
+        "summary": "logout",
+        "requestBody": {
+          "content": {}
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "application/json"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

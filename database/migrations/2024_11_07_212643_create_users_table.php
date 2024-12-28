@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->string('address');
-            $table->enum('type', ['Customer', 'Professional', 'Admin']);
+            $table->enum('type', ['Customer', 'Professional', 'Admin',]);
             $table->date('DOB')->nullable();
             $table->string('phone_number', 20);
             $table->string('email', 100)->unique();

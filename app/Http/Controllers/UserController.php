@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
-
     /**
      * Helper method to retrieve the authenticated user's ID.
      */
@@ -26,7 +25,7 @@ class UserController extends Controller
         // Retrieve the authenticated user
         $user = Auth::user();
 
-        // Check if the user is authenticated and return the user_ID
+        // Check if the user is authenticated and return the user_ID0
         return $user ? $user->user_ID : null;
     }
 
@@ -45,36 +44,59 @@ class UserController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'first_name' => 'nullable|string',
-            'last_name' => 'nullable|string',
-            'address' => 'nullable|string',
-            'type' => 'required|string',
+            'type' => 'required|string|in:Customer,Professional,Admin',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
             'DOB' => 'required|date',
-            'phone_number' => 'required|string|unique:users',
-            'email' => 'required|string|email|unique:users',
+            'phone_number' => 'required|string|max:20|unique:users',
+            'email' => 'required|string|email|max:100|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'profile_image' => 'nullable|string',
-            'bank_choice' => 'nullable|string',
+            'profile_image' => 'nullable|string|max:255',
+            'bank_choice' => 'nullable|string|max:255',
+            'incomeSources' => 'nullable|array',
+            'incomeSources.*.source_name' => 'required|string|max:255',
+            'incomeSources.*.amount' => 'required|numeric|min:0',
+            'incomeSources.*.frequency' => 'required|in:monthly,yearly,daily,weekly',
+            'incomeSources.*.description' => 'nullable|string|max:255',
         ]);
 
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'address' => $request->address,
-            'type' => $request->type,
-            'DOB' => $request->DOB,
-            'phone_number' => $request->phone_number,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'profile_image' => $request->profile_image,
-            'bank_choice' => $request->bank_choice,
+        // Hash the password before storing it
+        $hashedPassword = Hash::make($request->password);
+
+        // Prepare the JSON array for incomeSources
+        $incomeSourcesJson = json_encode($request->incomeSources ?? []);
+
+        // Call the stored procedure
+        DB::statement("CALL CreateUserAccount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+            $request->type,
+            $request->first_name,
+            $request->last_name,
+            $request->address,
+            $request->DOB,
+            $request->phone_number,
+            $request->email,
+            $hashedPassword,
+            $request->profile_image,
+            $request->bank_choice,
+            $request->certificateID ?? null,
+            $request->adminDescription ?? null,
+            $incomeSourcesJson,
         ]);
 
-        // Automatically log in the user after registration
+        // Retrieve the new user by email to generate a token
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User registration failed'], 500);
+        }
+
+        // Generate token for the newly registered user
         $token = $user->createToken('api_token')->plainTextToken;
 
         return response()->json(['user' => $user, 'token' => $token], 201);
     }
+
 
     public function login(Request $request)
     {
@@ -106,6 +128,19 @@ class UserController extends Controller
 
         // Return a simple success message with the token
         return response()->json(['message' => 'Login successful', 'token' => $token], 200);
+    }
+
+    public function getAuthenticatedUser(Request $request)
+    {
+        // Retrieve the authenticated user
+        $user = $request->user();
+
+        // Return user details
+        if ($user) {
+            return response()->json(['user' => $user], 200);
+        } else {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
     }
 
     // User Logout
@@ -157,12 +192,6 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Password changed successfully.'], 200);
     }
-
-
-
-
-
-
 
 
     public function updateProfile(Request $request)
@@ -254,14 +283,6 @@ class UserController extends Controller
         return response()->json(['users' => $users], 200);
     }
 
-
-
-
-
-
-
-
-
     // Add Certification
     public function addCertification(Request $request)
     {
@@ -271,6 +292,7 @@ class UserController extends Controller
             'certificate_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Only images allowed
         ]);
 
+        // Get the professional's user ID (professional_ID)
         $professionalId = $this->getProfessionalId();
 
         if (!$professionalId) {
@@ -283,7 +305,7 @@ class UserController extends Controller
 
         // Save certification details in the database
         $certificate = Certificate::create([
-            'professional_ID' => $professionalId,
+            'professional_ID' => $professionalId,  // Use professional's user_ID here
             'certificate_name' => $request->certificate_name,
             'certificate_date' => $request->certificate_date,
             'certificate_image' => $imageUrl,
@@ -291,6 +313,7 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Certification added successfully', 'certificate' => $certificate], 201);
     }
+
 
 
     // Update Certification
@@ -302,20 +325,24 @@ class UserController extends Controller
             'certificate_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // Find the certificate
         $certificate = Certificate::find($id);
 
         if (!$certificate) {
             return response()->json(['message' => 'Certification not found'], 404);
         }
 
-        // Check ownership
-        if ($certificate->professional_ID !== $this->getProfessionalId()) {
+        // Get the professional's user ID (professional_ID)
+        $professionalId = $this->getProfessionalId();
+
+        // Check if the certificate belongs to the current professional
+        if ($certificate->professional_ID !== $professionalId) {
             return response()->json(['message' => 'Unauthorized action'], 403);
         }
 
-        // Update the image if provided
+        // Update the image if a new one is provided
         if ($request->hasFile('certificate_image')) {
-            // Delete old image
+            // Delete the old image if exists
             if ($certificate->certificate_image) {
                 Storage::delete(str_replace('/storage', 'public', $certificate->certificate_image));
             }
@@ -328,6 +355,7 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Certification updated successfully', 'certificate' => $certificate], 200);
     }
+
 
 
     // Delete Certification

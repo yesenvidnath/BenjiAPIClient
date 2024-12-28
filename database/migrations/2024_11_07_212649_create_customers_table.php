@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('customers', function (Blueprint $table) {
             $table->foreignId('user_ID')->primary()->constrained('users', 'user_ID');
-            $table->enum('status', ['pending', 'active', 'banned', 'suspended']);
+            $table->enum('status', ['pending', 'active', 'banned', 'suspended', 'converted']);
             $table->timestamps();
         });
     }

@@ -1,66 +1,173 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Benji API Client Backend Repository
 
-## About Laravel
+Welcome to the **Benji API Client Backend Repository**! This repository contains the complete backend implementation for the Benji Application, built using Laravel. It provides the core functionality and API endpoints required for the Benji ecosystem, integrating seamlessly with the frontend and admin modules.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Project Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The Benji API Client serves as the backbone of the Benji ecosystem, managing data flow, business logic, and API endpoints. It powers features for user management, financial insights, authentication, and much more.
 
-## Learning Laravel
+### Key Features:
+- **User Management**: APIs for user registration, authentication, and role management.
+- **Financial Insights**: Endpoints for managing and analyzing financial data.
+- **Integration with Third-Party Services**: Seamless integration with payment gateways, Google APIs, and more.
+- **Secure Authentication**: Token-based authentication using Laravel Sanctum.
+- **Scalable Architecture**: Designed to handle large-scale applications.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Project Structure
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Key Directories:
 
-## Laravel Sponsors
+- **app/**: Core application logic and models.
+- **config/**: Configuration files for database, services, and other settings.
+- **database/**: Migrations, seeders, and factories for database setup.
+- **routes/**: API route definitions (web.php, api.php).
+- **resources/views/**: Laravel Blade templates for web rendering.
+- **storage/**: Logs, cached files, and compiled views.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Requirements
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### Prerequisites:
+Ensure the following dependencies are installed:
 
-## Contributing
+- PHP 8.1+
+- Composer
+- MySQL database
+- Laravel Framework 10.10
+- Node.js and npm (for asset management)
+- Redis (optional for caching and queue management)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Environment Configuration
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Setting Up the Environment:
+Configure the `.env` file for your environment:
 
-## Security Vulnerabilities
+```env
+APP_NAME=BenjiAPI
+APP_ENV=local
+APP_KEY=base64:your_app_key_here
+APP_DEBUG=true
+APP_URL=http://localhost
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=benji_database
+DB_USERNAME=root
+DB_PASSWORD=your_password
+
+CACHE_DRIVER=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="noreply@benji.com"
+MAIL_FROM_NAME="Benji Support"
+
+SANCTUM_STATEFUL_DOMAINS=localhost
+```
+
+---
+
+## Getting Started
+
+### Installation Steps:
+
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/yesenvidnath/BenjiAPIClient.git
+   cd BenjiAPIClient
+   ```
+
+2. **Install PHP Dependencies:**
+   ```bash
+   composer install
+   ```
+
+3. **Set Up Environment Variables:**
+   Create a `.env` file and configure it as described above.
+
+4. **Run Database Migrations and Seeders:**
+   ```bash
+   php artisan migrate --seed
+   ```
+
+5. **Serve the Application:**
+   ```bash
+   php artisan serve
+   ```
+
+6. **Set Up Storage:**
+   Link the storage directory for public access:
+   ```bash
+   php artisan storage:link
+   ```
+
+7. **Compile Frontend Assets (Optional):**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+---
+
+## API Endpoints
+
+### Authentication:
+- `POST /api/register`: Register a new user.
+- `POST /api/login`: Log in a user.
+- `POST /api/logout`: Log out the current user.
+
+### Financial Management:
+- `GET /api/expenses`: Retrieve user expenses.
+- `POST /api/expenses`: Add a new expense.
+- `PUT /api/expenses/{id}`: Update an expense.
+- `DELETE /api/expenses/{id}`: Delete an expense.
+
+### Admin Functions:
+- `GET /api/users`: Retrieve all users.
+- `POST /api/users`: Add a new user.
+- `DELETE /api/users/{id}`: Delete a user.
+
+For detailed documentation, visit the [API Documentation](http://localhost/docs).
+
+---
+
+## Contribution Guidelines
+
+Contributions are welcome! Please adhere to the following steps:
+
+1. Fork the repository and create a new branch for your feature or bugfix.
+2. Write clean, well-documented code.
+3. Test your changes thoroughly before submitting a pull request.
+4. Open a detailed pull request with a summary of your changes.
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
+
+## Contact
+
+For further inquiries or support:
+- **Name**: K.K.Y. Vidnath
+- **Email**: support@benji.com
+
+Thank you for contributing to the Benji API Client!
